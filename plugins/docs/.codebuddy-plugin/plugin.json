@@ -1,7 +1,7 @@
 {
   "name": "docs",
   "version": "1.0.0",
-  "description": "写作辅助 Skill：基于 283 万字语料统计的去 AI 味改写工具，白名单式规则只改命中文字，适用于成稿清理",
+  "description": "写作辅助Skill：基于283万字语料统计的去AI味改写工具，白名单式规则只改命中文字，适用于成稿清理",
   "author": {
     "name": "Jeffrey"
   },

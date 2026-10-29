@@ -11,8 +11,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Docs",
-    "shortDescription": "去AI味写作 Skill：语料统计驱动的白名单式改写规则",
-    "longDescription": "基于 629 篇文章、283 万字对照语料研究的去 AI 味 Skill。11 条经过统计检验的改写规则，白名单式处理：只修改明确命中规则的文字，未命中内容逐字保留，信息不增不减，文章框架不变。",
+    "shortDescription": "去AI味写作Skill：语料统计驱动的白名单式改写规则",
+    "longDescription": "基于629篇文章、283万字对照语料研究的去AI味Skill。11条经过统计检验的改写规则，白名单式处理：只修改明确命中规则的文字，未命中内容逐字保留，信息不增不减，文章框架不变。",
     "developerName": "Jeffrey",
     "category": "Productivity",
     "websiteURL": "https://github.com/jeffrey1205/claude-plugins"

@@ -1,6 +1,6 @@
 # CodeGraph Plugin
 
-代码图谱MCP服务器，为 Claude Code 提供语义代码理解能力。
+代码图谱MCP服务器，为Claude Code提供语义代码理解能力。
 
 ## 功能
 
@@ -8,11 +8,11 @@
 - **调用图分析**：追踪调用者和被调用者
 - **影响分析**：分析修改代码的影响范围
 - **代码上下文**：一键获取相关代码片段
-- **支持 19+ 语言**：TypeScript、JavaScript、Python、Go、Rust、Java、C#、PHP、Ruby、C、C++、Swift、Kotlin、Scala、Dart、Svelte、Vue、Liquid、Pascal/Delphi、Lua、Luau
+- **支持19+语言**：TypeScript、JavaScript、Python、Go、Rust、Java、C#、PHP、Ruby、C、C++、Swift、Kotlin、Scala、Dart、Svelte、Vue、Liquid、Pascal/Delphi、Lua、Luau
 
 ## 使用方法
 
-### 1. 安装 CLI
+### 1. 安装CLI
 
 ```bash
 npm i -g @colbymchenry/codegraph
@@ -34,5 +34,5 @@ codegraph sync
 
 ## 参考资料
 
-- [CodeGraph 官方文档](https://colbymchenry.github.io/codegraph/)
-- [GitHub 仓库](https://github.com/colbymchenry/codegraph)
+- [CodeGraph官方文档](https://colbymchenry.github.io/codegraph/)
+- [GitHub仓库](https://github.com/colbymchenry/codegraph)

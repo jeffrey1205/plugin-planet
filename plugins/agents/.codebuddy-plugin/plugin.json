@@ -1,7 +1,7 @@
 {
   "name": "agents",
   "version": "1.0.0",
-  "description": "开发agent（CodeBuddy Code / Claude Code）：worker 实施已确认计划的代码修改，tester 检查补充并运行 Go/Python 测试",
+  "description": "开发agent（CodeBuddy Code / Claude Code）：worker实施已确认计划的代码修改，tester检查补充并运行Go/Python测试",
   "author": {
     "name": "Jeffrey"
   },

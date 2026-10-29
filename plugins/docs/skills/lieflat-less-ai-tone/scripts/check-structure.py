@@ -4,8 +4,8 @@
     python3 scripts/check-structure.py --human <目录...> --ai <目录...>
 
 为什么单独一个脚本：这两项的分母是段数，不是字数。
-用「每千字」会被结构差异带偏——AI 平均每篇 10 个小标题、人类 1-2 个，
-按字数算问句小标题会虚高 30 倍，换成占小标题比例后差异消失。
+用「每千字」会被结构差异带偏——AI平均每篇10个小标题、人类1-2个，
+按字数算问句小标题会虚高30倍，换成占小标题比例后差异消失。
 涉及结构元素的指标，分母必须是同类元素的总数。
 """
 import re
@@ -40,7 +40,7 @@ def signature(sent):
 
 
 def isomorphic(para, n):
-    """段内是否有连续 n 句结构指纹相同"""
+    """段内是否有连续n句结构指纹相同"""
     sents = [s.strip() for s in re.split(r"[。！？]", para) if len(s.strip()) > 10]
     hits = 0
     for i in range(len(sents) - n + 1):

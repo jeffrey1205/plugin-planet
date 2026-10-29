@@ -1,7 +1,7 @@
 {
   "name": "golang-dev",
   "version": "1.0.1",
-  "description": "Go 开发工具集：gopls MCP 语义分析、MCP 编排工具、Rob Pike 的 Go Proverbs 编程哲学指导",
+  "description": "Go开发工具集：gopls MCP语义分析、MCP编排工具、Rob Pike的Go Proverbs编程哲学指导",
   "author": {
     "name": "Jeffrey"
   },
@@ -20,8 +20,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Golang Develop Toolkit",
-    "shortDescription": "Go 开发、gopls 分析与 Go 编程哲学",
-    "longDescription": "Go 开发工具集，包含 gopls MCP 语义分析、MCP 编排工具以及 Rob Pike 的 Go Proverbs 编程哲学指导。",
+    "shortDescription": "Go开发、gopls分析与Go编程哲学",
+    "longDescription": "Go开发工具集，包含gopls MCP语义分析、MCP编排工具以及Rob Pike的Go Proverbs编程哲学指导。",
     "developerName": "Jeffrey",
     "category": "Development",
     "capabilities": [

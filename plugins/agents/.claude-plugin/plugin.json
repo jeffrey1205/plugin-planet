@@ -1,7 +1,7 @@
 {
   "name": "agents",
   "displayName": "Agents",
-  "description": "开发agent集：worker 负责实施已确认计划的代码修改，tester 负责检查、补充并运行 Go/Python 测试",
+  "description": "开发agent集：worker负责实施已确认计划的代码修改，tester负责检查、补充并运行Go/Python测试",
   "version": "1.0.0",
   "author": {
     "name": "Jeffrey"

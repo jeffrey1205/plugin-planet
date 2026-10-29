@@ -1,6 +1,6 @@
 {
   "name": "cc-hub",
-  "description": "个人插件集合，包含 MCP 服务器、编程哲学 Skill、开发工具等扩展",
+  "description": "个人插件集合，包含MCP服务器、编程哲学Skill、开发工具等扩展",
   "owner": {
     "name": "Jeffrey"
   },
@@ -21,7 +21,7 @@
     },
     {
       "name": "golang-dev",
-      "description": "Go 开发工具集：gopls MCP 语义分析、MCP 编排工具、Rob Pike 的 Go Proverbs 编程哲学指导",
+      "description": "Go开发工具集：gopls MCP语义分析、MCP编排工具、Rob Pike的Go Proverbs编程哲学指导",
       "category": "development",
       "source": "./plugins/golang-dev",
       "homepage": "https://github.com/jeffrey1205/claude-plugins",
@@ -37,7 +37,7 @@
     },
     {
       "name": "coder",
-      "description": "编程大师思维工具集：Karpathy 编码指南 + Linus Torvalds 的代码品味与架构哲学，适用于后端及系统编程场景",
+      "description": "编程大师思维工具集：Karpathy编码指南与Linus Torvalds的代码品味、架构哲学，适用于后端及系统编程场景",
       "category": "development",
       "source": "./plugins/coder",
       "homepage": "https://github.com/jeffrey1205/claude-plugins",
@@ -53,8 +53,23 @@
       ]
     },
     {
+      "name": "thinker",
+      "description": "思维工具集：deepen把宽泛的想法重写成可验证的深度需求，grill-me对已选定的方案做前提审查",
+      "category": "productivity",
+      "source": "./plugins/thinker",
+      "homepage": "https://github.com/jeffrey1205/claude-plugins",
+      "keywords": [
+        "skill",
+        "thinking",
+        "requirements",
+        "design-review",
+        "socratic",
+        "analysis"
+      ]
+    },
+    {
       "name": "rtk",
-      "description": "CLI 输出过滤工具，减少 LLM token 消耗（节省 60-90%）",
+      "description": "CLI输出过滤工具，减少LLM token消耗（节省60-90%）",
       "category": "development",
       "source": "./plugins/rtk",
       "homepage": "https://github.com/rtk-ai/rtk",
@@ -78,7 +93,7 @@
     },
     {
       "name": "docs",
-      "description": "写作辅助 Skill：去AI味改写工具，白名单式规则只改命中文字",
+      "description": "写作辅助Skill：去AI味改写工具，白名单式规则只改命中文字",
       "category": "productivity",
       "source": "./plugins/docs",
       "homepage": "https://github.com/jeffrey1205/claude-plugins",
@@ -93,7 +108,7 @@
     },
     {
       "name": "agents",
-      "description": "开发agent：worker 实施已确认计划的代码修改，tester 检查补充并运行 Go/Python 测试",
+      "description": "开发agent：worker实施已确认计划的代码修改，tester检查补充并运行Go/Python测试",
       "category": "development",
       "source": "./plugins/agents",
       "homepage": "https://github.com/jeffrey1205/claude-plugins",

@@ -1,8 +1,8 @@
 {
   "name": "coder",
   "displayName": "Coder",
-  "description": "编程大师思维工具集：Karpathy 编码指南 + Linus Torvalds 的代码品味与架构哲学，适用于后端及系统编程场景",
-  "version": "2.0.0",
+  "description": "编程大师思维工具集：Karpathy编码指南与Linus Torvalds的代码品味、架构哲学，适用于后端及系统编程场景",
+  "version": "2.0.1",
   "author": {
     "name": "Jeffrey"
   },

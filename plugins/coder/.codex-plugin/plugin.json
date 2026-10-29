@@ -1,7 +1,7 @@
 {
   "name": "coder",
-  "version": "2.0.0",
-  "description": "编程大师思维工具集：Karpathy 编码指南 + Linus Torvalds 的代码品味与架构哲学，适用于后端及系统编程场景",
+  "version": "2.0.1",
+  "description": "编程大师思维工具集：Karpathy编码指南与Linus Torvalds的代码品味、架构哲学，适用于后端及系统编程场景",
   "author": {
     "name": "Jeffrey"
   },
@@ -19,8 +19,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Coder",
-    "shortDescription": "编程大师思维工具集：Karpathy 编码指南与 Linus Torvalds 代码哲学",
-    "longDescription": "包含 Karpathy 编码实践、Linus Torvalds 代码品味与架构原则的开发辅助工具集，适用于后端开发、系统编程、代码审查和架构设计场景。",
+    "shortDescription": "编程大师思维工具集：Karpathy编码指南与Linus Torvalds代码哲学",
+    "longDescription": "包含Karpathy编码实践、Linus Torvalds代码品味与架构原则的开发辅助工具集，适用于后端开发、系统编程、代码审查和架构设计场景。",
     "developerName": "Jeffrey",
     "category": "Development",
     "websiteURL": "https://github.com/jeffrey1205/claude-plugins"

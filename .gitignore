@@ -2,4 +2,5 @@
 .claude/
 .mimocode/
 .codebuddy/
+.workbuddy/
 __pycache__/

@@ -1,0 +1,12 @@
+{
+  "name": "thinker",
+  "version": "1.0.0",
+  "description": "思维工具集：deepen把宽泛的想法重写成可验证的深度需求，grill-me对已选定的方案做前提审查",
+  "author": {
+    "name": "Jeffrey"
+  },
+  "homepage": "https://github.com/jeffrey1205/claude-plugins",
+  "license": "MIT",
+  "keywords": ["skill", "thinking", "requirements", "design-review", "socratic", "analysis"],
+  "skills": "./skills/"
+}

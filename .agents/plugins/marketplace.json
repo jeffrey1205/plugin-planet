@@ -41,6 +41,18 @@
       "category": "Development"
     },
     {
+      "name": "thinker",
+      "source": {
+        "source": "local",
+        "path": "./plugins/thinker"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
       "name": "docs",
       "source": {
         "source": "local",

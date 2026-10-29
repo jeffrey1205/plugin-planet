@@ -1,6 +1,6 @@
 # claude-plugins
 
-个人 Claude Code / Codex / CodeBuddy 插件集合，包含 MCP 服务器、编程哲学 Skill、开发工具等扩展。
+个人Claude Code / Codex / CodeBuddy插件集合，包含MCP服务器、编程哲学Skill、开发工具等扩展。
 
 ## 安装方式
 
@@ -12,6 +12,7 @@
 /plugin install codegraph@cc-hub
 /plugin install golang-dev@cc-hub
 /plugin install coder@cc-hub
+/plugin install thinker@cc-hub
 /plugin install rtk@cc-hub
 /plugin install statusline@cc-hub
 /plugin install docs@cc-hub
@@ -26,6 +27,7 @@ codex plugin marketplace add jeffrey1205/claude-plugins
 codex plugin add codegraph@cc-hub
 codex plugin add golang-dev@cc-hub
 codex plugin add coder@cc-hub
+codex plugin add thinker@cc-hub
 codex plugin add docs@cc-hub
 ```
 
@@ -37,6 +39,7 @@ codex plugin add docs@cc-hub
 /plugin install codegraph@cc-hub
 /plugin install golang-dev@cc-hub
 /plugin install coder@cc-hub
+/plugin install thinker@cc-hub
 /plugin install docs@cc-hub
 /plugin install statusline@cc-hub
 /plugin install agents@cc-hub
@@ -46,15 +49,16 @@ codex plugin add docs@cc-hub
 
 | 插件名 | 类型 | 描述 |
 |--------|------|------|
-| [codegraph](./plugins/codegraph) | MCP Server + Skill | 代码图谱 MCP 服务器，提供语义搜索、调用图分析、影响分析 |
-| [golang-dev](./plugins/golang-dev) | MCP Server + Skill | Go 开发工具集：gopls MCP 语义分析、MCP 编排工具、Rob Pike 的 Go Proverbs 编程哲学指导 |
-| [coder](./plugins/coder) | Skill | 编程大师思维工具集：Karpathy 编码指南 + Linus Torvalds 的代码品味与架构哲学 |
-| [rtk](./plugins/rtk) | Hook | CLI 输出过滤工具，减少 LLM token 消耗（节省 60-90%） |
+| [codegraph](./plugins/codegraph) | MCP Server + Skill | 代码图谱MCP服务器，提供语义搜索、调用图分析、影响分析 |
+| [golang-dev](./plugins/golang-dev) | MCP Server + Skill | Go开发工具集：gopls MCP语义分析、MCP编排工具、Rob Pike的Go Proverbs编程哲学指导 |
+| [coder](./plugins/coder) | Skill | 编程大师思维工具集：Karpathy编码指南与Linus Torvalds的代码品味、架构哲学 |
+| [thinker](./plugins/thinker) | Skill | 思维工具集：deepen需求深度重构、grill-me前提审查 |
+| [rtk](./plugins/rtk) | Hook | CLI输出过滤工具，减少LLM token消耗（节省60-90%） |
 | [statusline](./plugins/statusline) | Command + Script | 双宿主状态行（CodeBuddy Code / Claude Code）：上下文进度、Git、Token、请求数、Credits、Effort |
-| [docs](./plugins/docs) | Skill | 写作辅助 Skill：基于 283 万字语料统计的去 AI 味改写，白名单式规则只改命中文字 |
-| [agents](./plugins/agents) | Agent | 双宿主开发 agent 集（CodeBuddy Code / Claude Code）：worker 实施已确认计划的代码修改，tester 负责 Go/Python 测试 |
+| [docs](./plugins/docs) | Skill | 写作辅助Skill：基于283万字语料统计的去AI味改写，白名单式规则只改命中文字 |
+| [agents](./plugins/agents) | Agent | 双宿主开发agent集（CodeBuddy Code / Claude Code）：worker实施已确认计划的代码修改，tester负责Go/Python测试 |
 
-> codegraph / golang-dev / coder / docs / statusline / agents 同时支持 Claude Code 与 CodeBuddy；rtk 仅支持 Claude Code。
+> codegraph / golang-dev / coder / thinker / docs / statusline / agents同时支持Claude Code与CodeBuddy；rtk仅支持Claude Code。
 
 
 ## 目录结构
@@ -96,6 +100,14 @@ codex plugin add docs@cc-hub
     │       │   └── SKILL.md  # Karpathy 编码指南
     │       └── linus-torvalds/
     │           └── SKILL.md  # Linus 编程哲学
+    ├── thinker/
+    │   ├── .claude-plugin/
+    │   │   └── plugin.json   # 插件清单
+    │   └── skills/
+    │       ├── deepen/
+    │       │   └── SKILL.md  # 需求深度重构
+    │       └── grill-me/
+    │           └── SKILL.md  # 前提审查追问
     ├── rtk/
     │   ├── .claude-plugin/
     │   │   └── plugin.json   # 插件清单
@@ -138,28 +150,28 @@ codex plugin add docs@cc-hub
 
 ## 添加新插件
 
-以 Claude Code 插件为例，Codex / CodeBuddy 插件流程类似
+以Claude Code插件为例，Codex / CodeBuddy插件流程类似
 在 `plugins/` 目录下新建插件目录，包含：
-- `.claude-plugin/plugin.json` — Claude Code 插件清单（name, description, version 等）
-- `.codex-plugin/plugin.json` — Codex 插件清单（如支持 Codex）
-- `.codebuddy-plugin/plugin.json` — CodeBuddy 插件清单（如支持 CodeBuddy）
-- `.mcp.json` — MCP 服务器配置（如适用）
-- `skills/` — Skill 文件（如适用）
-- `hooks/` — Hook 配置（如适用）
+- `.claude-plugin/plugin.json` — Claude Code插件清单（name, description, version等）
+- `.codex-plugin/plugin.json` — Codex插件清单（如支持Codex）
+- `.codebuddy-plugin/plugin.json` — CodeBuddy插件清单（如支持CodeBuddy）
+- `.mcp.json` — MCP服务器配置（如适用）
+- `skills/` — Skill文件（如适用）
+- `hooks/` — Hook配置（如适用）
 
-然后在 `.claude-plugin/marketplace.json` 的 `plugins` 数组中添加新条目；Codex 和 CodeBuddy 分别同步到 `.agents/plugins/marketplace.json` 和 `.codebuddy-plugin/marketplace.json`。
+然后在 `.claude-plugin/marketplace.json` 的 `plugins` 数组中添加新条目；Codex和CodeBuddy分别同步到 `.agents/plugins/marketplace.json` 和 `.codebuddy-plugin/marketplace.json`。
 
 ## 参考文档
 
-[Claude Code 插件](https://code.claude.com/docs/zh-CN/plugins)
+[Claude Code插件](https://code.claude.com/docs/zh-CN/plugins)
 
-[Claude Code 插件参考](https://code.claude.com/docs/zh-CN/plugins-reference)
+[Claude Code插件参考](https://code.claude.com/docs/zh-CN/plugins-reference)
 
-[codex 插件](https://developers.openai.com/plugins/build/plugins)
+[codex插件](https://developers.openai.com/plugins/build/plugins)
 
-[CodeBuddy 插件](https://www.codebuddy.cn/docs/cli/plugins)
+[CodeBuddy插件](https://www.codebuddy.cn/docs/cli/plugins)
 
-[CodeBuddy 插件市场](https://www.codebuddy.cn/docs/cli/plugin-marketplaces)
+[CodeBuddy插件市场](https://www.codebuddy.cn/docs/cli/plugin-marketplaces)
 
 ## 许可证
 

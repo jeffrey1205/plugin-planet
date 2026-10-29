@@ -16,8 +16,8 @@ into one of these commands:
 ```bash
 ROOT="$CODEBUDDY_PLUGIN_ROOT"
 [ -n "$ROOT" ] || ROOT="$CLAUDE_PLUGIN_ROOT"
-[ -n "$ROOT" ] || ROOT=$(ls -d "$HOME"/.codebuddy/plugins/cache/cc-hub/statusline/*/ 2>/dev/null | sort -V | tail -1)
-[ -n "$ROOT" ] || ROOT=$(ls -d "$HOME"/.claude/plugins/cache/cc-hub/statusline/*/ 2>/dev/null | sort -V | tail -1)
+[ -n "$ROOT" ] || ROOT=$(ls -d "$HOME"/.codebuddy/plugins/cache/plugin-planet/statusline/*/ 2>/dev/null | sort -V | tail -1)
+[ -n "$ROOT" ] || ROOT=$(ls -d "$HOME"/.claude/plugins/cache/plugin-planet/statusline/*/ 2>/dev/null | sort -V | tail -1)
 
 # Hide / show blocks (block-level)
 python3 "$ROOT/scripts/config.py" hide credits time

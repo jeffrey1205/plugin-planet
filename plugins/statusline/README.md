@@ -16,7 +16,7 @@ CodeBuddy Code / Claude Code通用的三行状态行：第一行环境与上下�
 
 ```
 /plugin marketplace add jeffrey1205/claude-plugins
-/plugin install statusline@cc-hub
+/plugin install statusline@plugin-planet
 /statusline:setup
 ```
 

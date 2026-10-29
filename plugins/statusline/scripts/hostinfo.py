@@ -79,8 +79,8 @@ def data_dir(host):
 
 def plugin_cache_root(host):
     """Directory holding versioned copies of this plugin, e.g.
-    ~/.claude/plugins/cache/cc-hub/statusline/<version>/."""
-    return os.path.join(config_root(host), 'plugins', 'cache', 'cc-hub', 'statusline')
+    ~/.claude/plugins/cache/plugin-planet/statusline/<version>/."""
+    return os.path.join(config_root(host), 'plugins', 'cache', 'plugin-planet', 'statusline')
 
 
 def _version_key(name):

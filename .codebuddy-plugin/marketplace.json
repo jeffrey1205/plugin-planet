@@ -1,5 +1,5 @@
 {
-  "name": "cc-hub",
+  "name": "plugin-planet",
   "description": "个人插件集合，包含MCP服务器、编程哲学Skill、开发工具等扩展",
   "owner": {
     "name": "Jeffrey"
@@ -25,7 +25,7 @@
     },
     {
       "name": "thinker",
-      "description": "思维工具集：deepen把宽泛的想法重写成可验证的深度需求，grill-me对已选定的方案做前提审查",
+      "description": "思维工具集：deepen把宽泛的想法重写成可验证的深度需求，grill-me对已选定的方案做前提拷问",
       "homepage": "https://github.com/jeffrey1205/claude-plugins",
       "source": "./plugins/thinker"
     },

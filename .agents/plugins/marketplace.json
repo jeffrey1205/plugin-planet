@@ -1,7 +1,7 @@
 {
-  "name": "cc-hub",
+  "name": "plugin-planet",
   "interface": {
-    "displayName": "CC Hub"
+    "displayName": "Plugin Planet"
   },
   "plugins": [
     {

@@ -1,7 +1,7 @@
 {
   "name": "thinker",
   "version": "1.0.0",
-  "description": "思维工具集：deepen把宽泛的想法重写成可验证的深度需求，grill-me对已选定的方案做前提审查",
+  "description": "思维工具集：deepen把宽泛的想法重写成可验证的深度需求，grill-me对已选定的方案做前提拷问",
   "author": {
     "name": "Jeffrey"
   },
@@ -18,8 +18,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Thinker",
-    "shortDescription": "思维工具集：需求深度重构与前提审查",
-    "longDescription": "包含deepen需求深度重构与grill-me前提审查的思维工具集。deepen用专家视角、原始数据来源和可执行判据把宽泛想法重写成可验证的深度需求；grill-me用苏格拉底式追问拆解已选定方案的隐含假设。适用于方案设计、需求澄清、市场与公司分析等需要把想法做深、把假设做实的场景。",
+    "shortDescription": "思维工具集：需求深度重构与前提拷问",
+    "longDescription": "包含deepen需求深度重构与grill-me前提拷问的思维工具集。deepen用专家视角、原始数据来源和可执行判据把宽泛想法重写成可验证的深度需求；grill-me用苏格拉底式追问拆解已选定方案的隐含假设。适用于方案设计、需求澄清、市场与公司分析等需要把想法做深、把假设做实的场景。",
     "developerName": "Jeffrey",
     "category": "Productivity",
     "websiteURL": "https://github.com/jeffrey1205/claude-plugins"

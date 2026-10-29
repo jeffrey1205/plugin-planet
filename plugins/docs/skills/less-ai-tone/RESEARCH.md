@@ -278,5 +278,3 @@ python3 scripts/check-translationese.py <AI 语料目录...>
 三个脚本都只按目录参数读 `.md`，不含任何语料，也不用目录名做标签（语料目录常带来源信息，避免输出带出身份）。正则定义在脚本顶部，可直接改。
 
 ---
-
-**规则集** [SKILL.md](./SKILL.md) · **概览** [README.md](./README.md)

@@ -1,7 +1,7 @@
 {
   "name": "thinker",
   "displayName": "Thinker",
-  "description": "思维工具集：deepen把宽泛的想法重写成可验证的深度需求，grill-me对已选定的方案做前提审查",
+  "description": "思维工具集：deepen把宽泛的想法重写成可验证的深度需求，grill-me对已选定的方案做前提拷问",
   "version": "1.0.0",
   "author": {
     "name": "Jeffrey"

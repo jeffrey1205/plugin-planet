@@ -28,11 +28,11 @@ class Detect(unittest.TestCase):
         shutil.rmtree(self._tmp, ignore_errors=True)
 
     def test_script_in_claude_cache(self):
-        path = '/home/u/.claude/plugins/cache/cc-hub/statusline/2.0.0/scripts/statusline.py'
+        path = '/home/u/.claude/plugins/cache/plugin-planet/statusline/2.0.0/scripts/statusline.py'
         self.assertEqual(hostinfo.detect({}, path), hostinfo.CLAUDE)
 
     def test_script_in_codebuddy_cache(self):
-        path = '/home/u/.codebuddy/plugins/cache/cc-hub/statusline/2.0.0/scripts/statusline.py'
+        path = '/home/u/.codebuddy/plugins/cache/plugin-planet/statusline/2.0.0/scripts/statusline.py'
         self.assertEqual(hostinfo.detect({}, path), hostinfo.CODEBUDDY)
 
     def test_codebuddy_env(self):
@@ -82,7 +82,7 @@ class PluginCache(unittest.TestCase):
         shutil.rmtree(self._tmp, ignore_errors=True)
 
     def test_newest_version(self):
-        root = os.path.join(self._tmp, 'plugins', 'cache', 'cc-hub', 'statusline')
+        root = os.path.join(self._tmp, 'plugins', 'cache', 'plugin-planet', 'statusline')
         for name in ('1.0.4', '2.0.0', '2.10.0'):
             os.makedirs(os.path.join(root, name))
         with mock.patch.dict(os.environ, {'CODEBUDDY_CONFIG_DIR': self._tmp}):

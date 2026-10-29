@@ -1,48 +1,48 @@
-# claude-plugins
+# plugin-planet
 
-个人Claude Code / Codex / CodeBuddy插件集合，包含MCP服务器、编程哲学Skill、开发工具等扩展。
+个人Claude Code / Codex / CodeBuddy插件集合，包含MCP服务器、编程哲学Skill、开发工具、思维工具Skill等扩展。
 
 ## 安装方式
 
 ### Claude Code
 
 ```bash
-/plugin marketplace add jeffrey1205/claude-plugins
+/plugin marketplace add jeffrey1205/plugin-planet
 
-/plugin install codegraph@cc-hub
-/plugin install golang-dev@cc-hub
-/plugin install coder@cc-hub
-/plugin install thinker@cc-hub
-/plugin install rtk@cc-hub
-/plugin install statusline@cc-hub
-/plugin install docs@cc-hub
-/plugin install agents@cc-hub
+/plugin install codegraph@plugin-planet
+/plugin install golang-dev@plugin-planet
+/plugin install coder@plugin-planet
+/plugin install thinker@plugin-planet
+/plugin install rtk@plugin-planet
+/plugin install statusline@plugin-planet
+/plugin install docs@plugin-planet
+/plugin install agents@plugin-planet
 ```
 
 ### Codex
 
 ```bash
-codex plugin marketplace add jeffrey1205/claude-plugins
+codex plugin marketplace add jeffrey1205/plugin-planet
 
-codex plugin add codegraph@cc-hub
-codex plugin add golang-dev@cc-hub
-codex plugin add coder@cc-hub
-codex plugin add thinker@cc-hub
-codex plugin add docs@cc-hub
+codex plugin add codegraph@plugin-planet
+codex plugin add golang-dev@plugin-planet
+codex plugin add coder@plugin-planet
+codex plugin add thinker@plugin-planet
+codex plugin add docs@plugin-planet
 ```
 
 ### CodeBuddy
 
 ```bash
-/plugin marketplace add jeffrey1205/claude-plugins
+/plugin marketplace add jeffrey1205/plugin-planet
 
-/plugin install codegraph@cc-hub
-/plugin install golang-dev@cc-hub
-/plugin install coder@cc-hub
-/plugin install thinker@cc-hub
-/plugin install docs@cc-hub
-/plugin install statusline@cc-hub
-/plugin install agents@cc-hub
+/plugin install codegraph@plugin-planet
+/plugin install golang-dev@plugin-planet
+/plugin install coder@plugin-planet
+/plugin install thinker@plugin-planet
+/plugin install docs@plugin-planet
+/plugin install statusline@plugin-planet
+/plugin install agents@plugin-planet
 ```
 
 ## 插件列表
@@ -52,14 +52,11 @@ codex plugin add docs@cc-hub
 | [codegraph](./plugins/codegraph) | MCP Server + Skill | 代码图谱MCP服务器，提供语义搜索、调用图分析、影响分析 |
 | [golang-dev](./plugins/golang-dev) | MCP Server + Skill | Go开发工具集：gopls MCP语义分析、MCP编排工具、Rob Pike的Go Proverbs编程哲学指导 |
 | [coder](./plugins/coder) | Skill | 编程大师思维工具集：Karpathy编码指南与Linus Torvalds的代码品味、架构哲学 |
-| [thinker](./plugins/thinker) | Skill | 思维工具集：deepen需求深度重构、grill-me前提审查 |
+| [thinker](./plugins/thinker) | Skill | 思维工具集：deepen需求深度重构、grill-me前提拷问，适合放在brainstorming后使用 |
 | [rtk](./plugins/rtk) | Hook | CLI输出过滤工具，减少LLM token消耗（节省60-90%） |
 | [statusline](./plugins/statusline) | Command + Script | 双宿主状态行（CodeBuddy Code / Claude Code）：上下文进度、Git、Token、请求数、Credits、Effort |
 | [docs](./plugins/docs) | Skill | 写作辅助Skill：基于283万字语料统计的去AI味改写，白名单式规则只改命中文字 |
 | [agents](./plugins/agents) | Agent | 双宿主开发agent集（CodeBuddy Code / Claude Code）：worker实施已确认计划的代码修改，tester负责Go/Python测试 |
-
-> codegraph / golang-dev / coder / thinker / docs / statusline / agents同时支持Claude Code与CodeBuddy；rtk仅支持Claude Code。
-
 
 ## 目录结构
 
@@ -107,7 +104,7 @@ codex plugin add docs@cc-hub
     │       ├── deepen/
     │       │   └── SKILL.md  # 需求深度重构
     │       └── grill-me/
-    │           └── SKILL.md  # 前提审查追问
+    │           └── SKILL.md  # 前提拷问
     ├── rtk/
     │   ├── .claude-plugin/
     │   │   └── plugin.json   # 插件清单
@@ -119,7 +116,7 @@ codex plugin add docs@cc-hub
     │   │   └── plugin.json   # Claude Code 插件清单
     │   ├── .codebuddy-plugin/
     │   │   └── plugin.json   # CodeBuddy 插件清单
-    │   ├── commands/          # setup/config/cost-detail/uninstall
+    │   ├── commands/          # setup/config
     │   └── scripts/           # 入口、解析、渲染、setup 与测试
     │       ├── statusline.py  # 入口（薄编排）
     │       ├── parsing.py     # 双宿主 transcript 解析
@@ -133,10 +130,8 @@ codex plugin add docs@cc-hub
     │   ├── .codebuddy-plugin/
     │   │   └── plugin.json      # CodeBuddy 插件清单
     │   └── skills/
-    │       └── lieflat-less-ai-tone/
+    │       └── less-ai-tone/
     │           ├── SKILL.md     # 去AI味规则集
-    │           ├── README.md    # 研究说明文档
-    │           ├── assets/      # 文档配图
     │           └── scripts/     # 语料测量脚本
     ├── agents/
     │   ├── .claude-plugin/

@@ -1,7 +1,5 @@
 # Lieflat Less AI Tone
 
-中文 | [English](README.en.md)
-
 [![去AI味.skill：用语言学方法量化「什么是AI味」，再把它去掉](assets/less-ai-tone-hero-zh.png)](https://moxt.ai/zh-CN/hub?type=skill&id=lieflat-less-ai-tone)
 
 **一个基于283万字语料统计的去AI味skill**
@@ -202,20 +200,6 @@ GPT破折号频率之低，曾被用于论证该特征已失效。但Claude一�
 
 规则全文见 [SKILL.md](./SKILL.md)。
 
-### 4.1应用
-
-规则集以Agent Skill形式发布。推荐直接在 [MoxtHub打开 `lieflat-less-ai-tone`](https://moxt.ai/zh-CN/hub?type=skill&id=lieflat-less-ai-tone)：Moxt拥有强大的上下文空间和AI原生的文件格式，方便agent处理长文内容。
-
-也可安装到本地：
-
-```bash
-npx skills add larashero3-dotcom/lieflat-less-ai-tone
-```
-
-安装后提交文本即按规则集处理。亦可直接将 `SKILL.md` 作为system prompt使用，适配任何支持自定义指令的工具。
-
-与写作风格蒸馏配合使用时不必单独安装本规则集，[writing-dna-skill](https://github.com/larashero3-dotcom/writing-dna-skill) 已内置一份，装该仓库即随行。二者构成先后两道工序，前者负责风格逼近，本规则集负责清除生成痕迹。同目录存在蒸馏产物时优先读取 `语言DNA.md`；两者冲突时以蒸馏产物为准，因其记录的是目标作者的实际写法，不属生成痕迹。
-
 ## 5测量失误记录
 
 本研究在算子设计环节共出现六次系统性失误，全部为算子覆盖范围宽于规则定义，且均在检视命中实例前即采信了频率结果。
@@ -277,6 +261,6 @@ python3 scripts/check-translationese.py <目录...>
 
 ---
 
-**数据与代码** [scripts/](./scripts/) · **完整结果表** [RESEARCH.md](./RESEARCH.md) · **规则集** [SKILL.md](./SKILL.md) · **MoxtHub** [去AI味.skill](https://moxt.ai/zh-CN/hub?type=skill&id=lieflat-less-ai-tone) · **English** [README.en.md](./README.en.md)
+**数据与代码** [scripts/](./scripts/) · **完整结果表** [RESEARCH.md](./RESEARCH.md) · **规则集** [SKILL.md](./SKILL.md) · **MoxtHub** [去AI味.skill](https://moxt.ai/zh-CN/hub?type=skill&id=lieflat-less-ai-tone)
 
-**许可** [MIT](./LICENSE)
+**许可** MIT

@@ -1,7 +1,5 @@
 # AI中文写作特征实测
 
-中文 | [English](RESEARCH.en.md)
-
 这份文档记录每一条规则的**预设与实测结果**，包括被推翻的预设。规则的依据是句式形态可定位，数字只用来决定某个句式够不够格立为规则。
 
 一开始有一批基于30篇AI样本的倍率统计（句长CV ×51、三连排比 ×7.3、段首序数词29%、破折号「Claude独有」等），后来用更大语料复测，多数对不上，已全部废弃。原因见文末「六次测量失误」。
@@ -281,4 +279,4 @@ python3 scripts/check-translationese.py <AI 语料目录...>
 
 ---
 
-**English** [RESEARCH.en.md](./RESEARCH.en.md) · **规则集** [SKILL.md](./SKILL.md) · **概览** [README.md](./README.md)
+**规则集** [SKILL.md](./SKILL.md) · **概览** [README.md](./README.md)

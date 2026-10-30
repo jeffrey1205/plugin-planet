@@ -2,8 +2,7 @@
   "mcpServers": {
     "gopls": {
       "command": "gopls",
-      "args": ["mcp", "serve"],
-      "env": {}
+      "args": ["mcp"]
     }
   }
 }

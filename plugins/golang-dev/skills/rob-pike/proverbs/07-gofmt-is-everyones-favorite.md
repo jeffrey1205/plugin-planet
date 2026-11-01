@@ -33,8 +33,8 @@ If at least one is present, emit `no findings`.
 
 ## How to use this file
 
-- This is the single subagent for the `tooling` category mentioned in `SKILL.md`.
-- The subagent does **not** walk `.go` files looking for formatting violations — that's `gofmt` itself. It only verifies that the enforcement exists.
+- This file covers the `gofmt` part of the 「gofmt、文档、命名和用户可见API」 row in `SKILL.md`'s routing table.
+- The reviewer does **not** walk `.go` files looking for formatting violations — that's `gofmt` itself. This file only helps verify that enforcement exists.
 - Running `gofmt -l .` locally is a quick sanity check; if it outputs file paths, the formatter is not being enforced anywhere, which is itself the finding.
 
 ## Suggested finding phrasing

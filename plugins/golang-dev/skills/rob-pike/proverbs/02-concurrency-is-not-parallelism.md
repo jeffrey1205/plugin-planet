@@ -35,7 +35,7 @@ This proverb is a **mental model**, not a code smell detector. It shapes how you
 - Contention on shared state — pprof mutex profile
 - Using channels where a mutex fits (and vice-versa) — covered by proverb #3
 
-Because the smells are better served by those specific tools and proverbs, a code-review subagent for #2 would mostly produce false positives. This file exists so the mindset is documented for the reviewer to apply as context, not as a findings generator.
+Because the smells are better served by those specific tools and proverbs, a review pass driven by #2 alone would mostly produce false positives. This file exists so the mindset is documented for the reviewer to apply as context, not as a findings generator.
 
 ## How reviewers should use it
 

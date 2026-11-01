@@ -64,64 +64,51 @@ codex plugin add docs@plugin-planet
 .
 ├── .agents/
 │   └── plugins/
-│       └── marketplace.json    # Codex 插件市场目录文件
+│       └── marketplace.json     # Codex 插件市场目录文件
 ├── .claude-plugin/
-│   └── marketplace.json    # Claude Code 插件市场目录文件
+│   └── marketplace.json         # Claude Code 插件市场目录文件
 ├── .codebuddy-plugin/
-│   └── marketplace.json    # CodeBuddy 插件市场目录文件
+│   └── marketplace.json         # CodeBuddy 插件市场目录文件
 └── plugins/
     ├── codegraph/
     │   ├── .claude-plugin/
-    │   │   └── plugin.json   # 插件清单
-    │   ├── .mcp.json         # MCP 服务器配置
+    │   │   └── plugin.json      # 插件清单
+    │   ├── .mcp.json            # MCP 服务器配置
     │   └── skills/
-    │       └── codegraph/
-    │           └── SKILL.md  # codegraph 使用指导
+    │       └── codegraph/       # codegraph 使用指导
     ├── golang-dev/
     │   ├── .claude-plugin/
-    │   │   └── plugin.json   # 插件清单
-    │   ├── .mcp.json         # gopls MCP 服务器配置
+    │   │   └── plugin.json      # 插件清单
+    │   ├── .mcp.json            # gopls MCP 服务器配置
     │   └── skills/
-    │       ├── gopls/
-    │       │   └── SKILL.md  # gopls 语义分析工具使用指导
-    │       ├── mcp-orch/
-    │       │   └── SKILL.md  # MCP 编排工具
-    │       └── rob-pike/
-    │           ├── SKILL.md      # Go Proverbs 全阶段指导
-    │           └── proverbs/     # 19 条 proverb 详细规则
+    │       ├── gopls/           # gopls 语义分析工具使用指导
+    │       ├── mcp-orch/        # MCP 编排工具
+    │       └── rob-pike/        # Go Proverbs 全阶段指导
     ├── coder/
     │   ├── .claude-plugin/
-    │   │   └── plugin.json   # 插件清单
+    │   │   └── plugin.json      # 插件清单
     │   └── skills/
-    │       ├── karpathy/
-    │       │   └── SKILL.md  # Karpathy 编码指南
-    │       └── linus-torvalds/
-    │           └── SKILL.md  # Linus 编程哲学
+    │       ├── karpathy/        # Karpathy 编码指南
+    │       └── linus-torvalds/  # Linus 编程哲学
     ├── thinker/
     │   ├── .claude-plugin/
-    │   │   └── plugin.json   # 插件清单
+    │   │   └── plugin.json      # 插件清单
     │   └── skills/
-    │       ├── deepen/
-    │       │   └── SKILL.md  # 需求深度重构
-    │       └── grill-me/
-    │           └── SKILL.md  # 前提拷问
+    │       ├── deepen/          # 需求深度重构
+    │       └── grill-me/        # 前提拷问
     ├── rtk/
     │   ├── .claude-plugin/
-    │   │   └── plugin.json   # 插件清单
+    │   │   └── plugin.json      # 插件清单
     │   ├── hooks/
-    │   │   └── hooks.json    # PreToolUse hook 配置
+    │   │   └── hooks.json       # PreToolUse hook 配置
     │   └── README.md
     ├── statusline/
     │   ├── .claude-plugin/
-    │   │   └── plugin.json   # Claude Code 插件清单
+    │   │   └── plugin.json      # Claude Code 插件清单
     │   ├── .codebuddy-plugin/
-    │   │   └── plugin.json   # CodeBuddy 插件清单
-    │   ├── commands/          # setup/config
-    │   └── scripts/           # 入口、解析、渲染、setup 与测试
-    │       ├── statusline.py  # 入口（薄编排）
-    │       ├── parsing.py     # 双宿主 transcript 解析
-    │       ├── render.py      # 三行渲染 + 布局配置
-    │       └── tests/         # 297 个用例
+    │   │   └── plugin.json      # CodeBuddy 插件清单
+    │   ├── commands/            # setup/config
+    │   └── scripts/             # 入口、解析、渲染、setup 与测试
     ├── docs/
     │   ├── .claude-plugin/
     │   │   └── plugin.json      # 插件清单
@@ -130,17 +117,15 @@ codex plugin add docs@plugin-planet
     │   ├── .codebuddy-plugin/
     │   │   └── plugin.json      # CodeBuddy 插件清单
     │   └── skills/
-    │       └── less-ai-tone/
-    │           ├── SKILL.md     # 去AI味规则集
-    │           └── scripts/     # 语料测量脚本
+    │       └── less-ai-tone/    # 去AI味规则集
     ├── agents/
     │   ├── .claude-plugin/
-    │   │   └── plugin.json   # 插件清单
+    │   │   └── plugin.json      # 插件清单
     │   ├── .codebuddy-plugin/
-    │   │   └── plugin.json   # CodeBuddy 插件清单
+    │   │   └── plugin.json      # CodeBuddy 插件清单
     │   └── agents/
-    │       ├── worker.md     # 代码实施 agent
-    │       └── tester.md     # 测试 agent
+    │       ├── worker.md        # 代码实施 agent
+    │       └── tester.md        # 测试 agent
 ```
 
 ## 添加新插件

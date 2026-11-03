@@ -119,6 +119,21 @@
         "coding",
         "testing"
       ]
+    },
+    {
+      "name": "context7",
+      "description": "实时文档MCP服务器：通过库ID（如 /vercel/next.js）检索最新版本、权威的文档与代码示例，解决LLM训练数据过时问题",
+      "category": "development",
+      "source": "./plugins/context7",
+      "homepage": "https://github.com/upstash/context7",
+      "keywords": [
+        "mcp",
+        "documentation",
+        "docs",
+        "code-examples",
+        "context7",
+        "upstash"
+      ]
     }
   ]
 }

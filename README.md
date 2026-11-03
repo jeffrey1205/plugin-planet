@@ -17,6 +17,7 @@
 /plugin install statusline@plugin-planet
 /plugin install docs@plugin-planet
 /plugin install agents@plugin-planet
+/plugin install context7@plugin-planet
 ```
 
 ### Codex
@@ -29,6 +30,7 @@ codex plugin add golang-dev@plugin-planet
 codex plugin add coder@plugin-planet
 codex plugin add thinker@plugin-planet
 codex plugin add docs@plugin-planet
+codex plugin add context7@plugin-planet
 ```
 
 ### CodeBuddy
@@ -43,6 +45,7 @@ codex plugin add docs@plugin-planet
 /plugin install docs@plugin-planet
 /plugin install statusline@plugin-planet
 /plugin install agents@plugin-planet
+/plugin install context7@plugin-planet
 ```
 
 ## 插件列表
@@ -57,6 +60,7 @@ codex plugin add docs@plugin-planet
 | [statusline](./plugins/statusline) | Command + Script | 双宿主状态行（CodeBuddy Code / Claude Code）：上下文进度、Git、Token、请求数、Credits、Effort |
 | [docs](./plugins/docs) | Skill | 写作辅助Skill：基于283万字语料统计的去AI味改写，白名单式规则只改命中文字 |
 | [agents](./plugins/agents) | Agent | 双宿主开发agent集（CodeBuddy Code / Claude Code）：worker实施已确认计划的代码修改，tester负责Go/Python测试 |
+| [context7](./plugins/context7) | MCP Server | 实时文档MCP服务器：通过库ID检索最新版本、权威的文档与代码示例，解决LLM训练数据过时问题 |
 
 ## 目录结构
 
@@ -126,6 +130,13 @@ codex plugin add docs@plugin-planet
     │   └── agents/
     │       ├── worker.md        # 代码实施 agent
     │       └── tester.md        # 测试 agent
+    ├── context7/
+    │   ├── .claude-plugin/
+    │   │   └── plugin.json      # Claude Code 插件清单
+    │   ├── .codebuddy-plugin/
+    │   │   └── plugin.json      # CodeBuddy 插件清单
+    │   ├── .mcp.json            # Context7 MCP 服务器配置
+    │   └── README.md
 ```
 
 ## 添加新插件

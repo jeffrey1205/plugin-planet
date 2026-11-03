@@ -46,6 +46,12 @@
       "description": "开发agent：worker实施已确认计划的代码修改，tester检查补充并运行Go/Python测试",
       "homepage": "https://github.com/jeffrey1205/claude-plugins",
       "source": "./plugins/agents"
+    },
+    {
+      "name": "context7",
+      "description": "实时文档MCP服务器：通过库ID检索最新版本、权威的文档与代码示例，解决LLM训练数据过时问题",
+      "homepage": "https://github.com/upstash/context7",
+      "source": "./plugins/context7"
     }
   ]
 }

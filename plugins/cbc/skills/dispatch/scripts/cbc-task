@@ -1,0 +1,410 @@
+#!/usr/bin/env python3
+"""cbc-task — dispatch background tasks to the CodeBuddy CLI (cbc).
+
+Subcommands: dispatch / status / result / list / kill.
+Runs `cbc -p <comment> --output-format json` detached; converges task state
+lazily on every status/list/result read. No third-party dependencies.
+"""
+
+import argparse
+import json
+import os
+import random
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import time
+
+EXIT_OK = 0
+EXIT_FAILED = 1
+EXIT_RUNNING = 2
+EXIT_USAGE = 2          # argparse default; also bad --timeout/--name
+EXIT_DUPLICATE = 3
+EXIT_NOT_FOUND = 4
+EXIT_UNAVAILABLE = 5    # cbc missing / task not launchable
+
+DEFAULT_TIMEOUT = 600
+STARTING_GRACE = 10      # seconds without pid/exit.code before "stale"
+NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$')
+
+
+def die(msg, code):
+    print(msg, file=sys.stderr)
+    sys.exit(code)
+
+
+def task_root():
+    return os.environ.get('CBC_TASK_DIR') or os.path.join(
+        os.environ.get('TMPDIR') or '/tmp', 'cbc-tasks-%d' % os.getuid())
+
+
+def task_path(tid):
+    return os.path.join(task_root(), tid)
+
+
+def atomic_write(path, text):
+    tmp = '%s.%d.tmp' % (path, os.getpid())
+    with open(tmp, 'w') as f:
+        f.write(text)
+    os.replace(tmp, path)
+
+
+def read_text(path):
+    try:
+        with open(path) as f:
+            return f.read()
+    except OSError:
+        return None
+
+
+def find_cbc():
+    cand = os.environ.get('CBC_BIN')
+    if cand:
+        if os.path.isfile(cand) and os.access(cand, os.X_OK):
+            return cand
+        die('CBC_BIN is set but not executable: %s' % cand, EXIT_UNAVAILABLE)
+    for name in ('codebuddy', 'cbc'):
+        found = shutil.which(name)
+        if found:
+            return found
+    die("cbc not found: set CBC_BIN or add 'codebuddy'/'cbc' to PATH",
+        EXIT_UNAVAILABLE)
+
+
+def pid_alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def excerpt(text, limit=80):
+    if text is None:
+        return 'result: (empty)'
+    one = ' '.join(str(text).split())
+    return 'result: ' + (one[:limit] + '...' if len(one) > limit else one)
+
+
+def extract_result(full_text):
+    """Parse cbc's message array. Returns (meta, error)."""
+    try:
+        arr = json.loads(full_text)
+    except (ValueError, TypeError):
+        return None, 'invalid output (not JSON)'
+    if not isinstance(arr, list):
+        return None, 'invalid output (not a message array)'
+    entry = None
+    for item in reversed(arr):
+        if isinstance(item, dict) and item.get('type') == 'result':
+            entry = item
+            break
+    if entry is None:
+        return None, 'no result entry in output'
+    model = entry.get('model')
+    for item in reversed(arr):
+        if (isinstance(item, dict) and item.get('type') == 'message'
+                and item.get('role') == 'assistant'):
+            m = (item.get('providerData') or {}).get('model')
+            if m:
+                model = m
+                break
+    return {
+        'result': entry.get('result'),
+        'is_error': bool(entry.get('is_error')),
+        'subtype': entry.get('subtype'),
+        'model': model,
+        'duration_ms': entry.get('duration_ms'),
+        'num_turns': entry.get('num_turns'),
+        'usage': entry.get('usage'),
+    }, None
+
+
+def finish(d, code):
+    """Terminal classification from exit code + full.json; persist state."""
+    full = read_text(os.path.join(d, 'full.json')) or ''
+    meta, err = extract_result(full)
+    if code == 0:
+        if meta is None:
+            # cbc reports API errors (auth, bad model) on stderr with exit 0
+            stderr_text = (read_text(os.path.join(d, 'stderr.log')) or '')
+            detail = (' '.join(stderr_text.split())[:300]
+                      if stderr_text.strip() else err)
+            state = 'failed'
+        elif meta['is_error'] or meta.get('subtype') != 'success':
+            state = 'failed'
+            detail = 'bad result: is_error=%s subtype=%s' % (
+                meta['is_error'], meta.get('subtype'))
+        else:
+            state, detail = 'done', excerpt(meta.get('result'))
+    else:
+        state = 'failed'
+        if code == 124:
+            detail = 'timeout'
+        elif code < 0:
+            detail = 'killed (signal %d)' % -code
+        else:
+            detail = 'exit %d' % code
+    if meta is not None:
+        atomic_write(os.path.join(d, 'result.json'),
+                     json.dumps(meta, ensure_ascii=False, indent=2))
+    atomic_write(os.path.join(d, 'status'), '%s\n%s\n' % (state, detail))
+    return state, detail
+
+
+def finalize(tid):
+    """Converge task state; returns (state, detail)."""
+    d = task_path(tid)
+    status_text = read_text(os.path.join(d, 'status'))
+    if status_text is None:
+        return 'failed', 'incomplete (dispatch interrupted)'
+    lines = status_text.split('\n')
+    state = lines[0].strip()
+    detail = lines[1].strip() if len(lines) > 1 else ''
+    if state != 'running':
+        return state, detail
+    exit_text = read_text(os.path.join(d, 'exit.code'))
+    if exit_text is not None and exit_text.strip():
+        try:
+            code = int(exit_text.strip())
+        except ValueError:
+            state, detail = 'failed', 'corrupt exit code'
+            atomic_write(os.path.join(d, 'status'),
+                         '%s\n%s\n' % (state, detail))
+            return state, detail
+        return finish(d, code)
+    pid_text = read_text(os.path.join(d, 'pid'))
+    if pid_text and pid_text.strip().isdigit():
+        pid = int(pid_text.strip())
+        if pid_alive(pid):
+            return 'running', 'pid %d' % pid
+        state, detail = 'failed', 'stale: process gone (no exit code)'
+        atomic_write(os.path.join(d, 'status'), '%s\n%s\n' % (state, detail))
+        return state, detail
+    # no pid yet: monitor either still launching or dead
+    try:
+        age = time.time() - os.path.getmtime(os.path.join(d, 'status'))
+    except OSError:
+        age = 0
+    if age > STARTING_GRACE:
+        state, detail = 'failed', 'stale: never started'
+        atomic_write(os.path.join(d, 'status'), '%s\n%s\n' % (state, detail))
+        return state, detail
+    return 'running', 'starting'
+
+
+def monitor(cmd, d, timeout, stdin_text=None):
+    """Child process: spawn cbc, wait (with timeout), record exit code."""
+    try:
+        os.setsid()
+    except OSError:
+        pass
+    devnull = os.open(os.devnull, os.O_RDWR)
+    for fd in (0, 1, 2):
+        os.dup2(devnull, fd)
+    if devnull > 2:
+        os.close(devnull)
+    code = 127
+    timed_out = False
+    try:
+        with open(os.path.join(d, 'full.json'), 'wb') as out, \
+                open(os.path.join(d, 'stderr.log'), 'wb') as err:
+            p = subprocess.Popen(
+                cmd, stdout=out, stderr=err, start_new_session=True,
+                stdin=(subprocess.PIPE if stdin_text is not None else None))
+            if stdin_text is not None:
+                try:
+                    p.stdin.write(stdin_text.encode())
+                    p.stdin.close()
+                except BrokenPipeError:
+                    pass
+        cb_pid = p.pid
+        atomic_write(os.path.join(d, 'pid'), str(cb_pid))
+        if timeout > 0:
+            def on_alarm(signum, frame):
+                nonlocal timed_out
+                timed_out = True
+                try:
+                    os.killpg(cb_pid, signal.SIGKILL)
+                except OSError:
+                    pass
+            signal.signal(signal.SIGALRM, on_alarm)
+            signal.alarm(timeout)
+        _, st = os.waitpid(cb_pid, 0)
+        signal.alarm(0)
+        if timed_out:
+            code = 124
+        elif os.WIFEXITED(st):
+            code = os.WEXITSTATUS(st)
+        elif os.WIFSIGNALED(st):
+            code = -os.WTERMSIG(st)
+        else:
+            code = 126
+    except BaseException:
+        code = 127
+    atomic_write(os.path.join(d, 'exit.code'), str(code))
+    os._exit(0)
+
+
+def cmd_dispatch(args):
+    if args.timeout < 0:
+        die('--timeout must be >= 0', EXIT_USAGE)
+    cbc = find_cbc()
+    stdin_mode = args.comment == ['-']
+    if stdin_mode:
+        comment = sys.stdin.read()
+    else:
+        comment = ' '.join(args.comment)
+    tid = args.name or 'task-%d-%04x' % (int(time.time()),
+                                         random.randint(0, 0xffff))
+    if not NAME_RE.match(tid):
+        die('invalid --name (use [A-Za-z0-9][A-Za-z0-9._-]*)', EXIT_USAGE)
+    root = task_root()
+    os.makedirs(root, mode=0o700, exist_ok=True)
+    d = os.path.join(root, tid)
+    try:
+        os.mkdir(d, 0o700)
+    except FileExistsError:
+        die('task already exists: %s' % tid, EXIT_DUPLICATE)
+    atomic_write(os.path.join(d, 'prompt.log'), comment)
+    atomic_write(os.path.join(d, 'status'), 'running\n')
+    if stdin_mode:
+        cmd = [cbc, '-p', '--output-format', 'json',
+               '--permission-mode', args.permission_mode]
+    else:
+        cmd = [cbc, '-p', comment, '--output-format', 'json',
+               '--permission-mode', args.permission_mode]
+    if args.model:
+        cmd += ['--model', args.model]
+    if os.fork() == 0:
+        monitor(cmd, d, args.timeout,
+                stdin_text=comment if stdin_mode else None)
+    # parent: wait briefly so pid (or exit.code) is visible to callers
+    deadline = time.time() + 2
+    while time.time() < deadline:
+        if (os.path.exists(os.path.join(d, 'pid'))
+                or os.path.exists(os.path.join(d, 'exit.code'))):
+            break
+        time.sleep(0.01)
+    print(tid)
+
+
+def require_task(tid):
+    if not os.path.isdir(task_path(tid)):
+        die('task not found: %s' % tid, EXIT_NOT_FOUND)
+
+
+def cmd_status(tid):
+    require_task(tid)
+    state, detail = finalize(tid)
+    print(state)
+    if detail:
+        print(detail)
+
+
+def cmd_result(tid):
+    require_task(tid)
+    state, detail = finalize(tid)
+    if state == 'running':
+        print('task %s still running' % tid, file=sys.stderr)
+        sys.exit(EXIT_RUNNING)
+    meta = None
+    raw = read_text(os.path.join(task_path(tid), 'result.json'))
+    if raw:
+        try:
+            meta = json.loads(raw)
+        except ValueError:
+            meta = None
+    text = meta.get('result') if meta else None
+    if state == 'done':
+        print(text if text is not None else '')
+        sys.exit(EXIT_OK)
+    print(text if text is not None else detail)
+    sys.exit(EXIT_FAILED)
+
+
+def cmd_list():
+    root = task_root()
+    if not os.path.isdir(root):
+        return
+    for tid in sorted(os.listdir(root)):
+        d = os.path.join(root, tid)
+        if not os.path.isdir(d):
+            continue
+        state, detail = finalize(tid)
+        anchor = os.path.join(d, 'prompt.log')
+        if not os.path.exists(anchor):
+            anchor = os.path.join(d, 'status')
+        try:
+            created = time.strftime('%Y-%m-%dT%H:%M:%S',
+                                    time.localtime(os.path.getmtime(anchor)))
+        except OSError:
+            created = '-'
+        print('%s\t%s\t%s\t%s' % (tid, state, created, detail))
+
+
+def cmd_kill(tid):
+    require_task(tid)
+    state, detail = finalize(tid)
+    if state != 'running':
+        print('task %s already %s' % (tid, state))
+        return
+    pid_text = read_text(os.path.join(task_path(tid), 'pid'))
+    if not (pid_text and pid_text.strip().isdigit()):
+        die('task not started yet', EXIT_UNAVAILABLE)
+    pid = int(pid_text.strip())
+    try:
+        pgid = os.getpgid(pid)
+    except ProcessLookupError:
+        print('task %s already exited' % tid)
+        return
+    if pgid != pid:
+        die('task process no longer owns its group', EXIT_UNAVAILABLE)
+    try:
+        os.killpg(pid, signal.SIGTERM)
+    except ProcessLookupError:
+        print('task %s already exited' % tid)
+        return
+    print('killed %s' % tid)
+
+
+def build_parser():
+    p = argparse.ArgumentParser(
+        prog='cbc-task',
+        description='Dispatch background tasks to CodeBuddy CLI (cbc).')
+    sub = p.add_subparsers(dest='cmd', required=True)
+    d = sub.add_parser('dispatch', help='start a background task')
+    d.add_argument('--model', help='model id, passed through unvalidated')
+    d.add_argument('--name', help='task id (default: auto-generated)')
+    d.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
+                   help='kill task after N seconds (0 = no limit)')
+    d.add_argument('--permission-mode', default='dontAsk',
+                   help='cbc permission mode (default: dontAsk)')
+    d.add_argument('comment', nargs='+', help='task prompt')
+    for name in ('status', 'result', 'kill'):
+        sp = sub.add_parser(name)
+        sp.add_argument('id')
+    sub.add_parser('list', help='list tasks')
+    return p
+
+
+def main(argv):
+    args = build_parser().parse_args(argv)
+    if args.cmd == 'dispatch':
+        cmd_dispatch(args)
+    elif args.cmd == 'status':
+        cmd_status(args.id)
+    elif args.cmd == 'result':
+        cmd_result(args.id)
+    elif args.cmd == 'list':
+        cmd_list()
+    elif args.cmd == 'kill':
+        cmd_kill(args.id)
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])

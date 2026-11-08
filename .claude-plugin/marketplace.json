@@ -134,6 +134,22 @@
         "context7",
         "upstash"
       ]
+    },
+    {
+      "name": "cbc",
+      "description": "后台任务派发：把prompt交给CodeBuddy CLI（cbc）非阻塞执行，dispatch立即返回任务id，之后查状态、取最终结果，思考与中途输出仅本地存档",
+      "category": "development",
+      "source": "./plugins/cbc",
+      "homepage": "https://github.com/jeffrey1205/plugin-planet",
+      "keywords": [
+        "skill",
+        "dispatch",
+        "background-task",
+        "codebuddy",
+        "cbc",
+        "cli",
+        "code-review"
+      ]
     }
   ]
 }

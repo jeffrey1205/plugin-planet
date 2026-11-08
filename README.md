@@ -18,6 +18,7 @@
 /plugin install docs@plugin-planet
 /plugin install agents@plugin-planet
 /plugin install context7@plugin-planet
+/plugin install cbc@plugin-planet
 ```
 
 ### Codex
@@ -61,6 +62,7 @@ codex plugin add context7@plugin-planet
 | [docs](./plugins/docs) | Skill | 写作辅助Skill：基于283万字语料统计的去AI味改写，白名单式规则只改命中文字 |
 | [agents](./plugins/agents) | Agent | 双宿主开发agent集（CodeBuddy Code / Claude Code）：worker实施已确认计划的代码修改，tester负责Go/Python测试 |
 | [context7](./plugins/context7) | MCP Server | 实时文档MCP服务器：通过库ID检索最新版本、权威的文档与代码示例，解决LLM训练数据过时问题 |
+| [cbc](./plugins/cbc) | Skill + Script | 后台任务派发（仅 Claude Code）：把prompt交给CodeBuddy CLI（cbc）非阻塞执行，dispatch秒回任务id，之后查状态、取最终结果，思考与中途输出仅本地存档 |
 
 ## 目录结构
 
@@ -137,6 +139,13 @@ codex plugin add context7@plugin-planet
     │   │   └── plugin.json      # CodeBuddy 插件清单
     │   ├── .mcp.json            # Context7 MCP 服务器配置
     │   └── README.md
+    ├── cbc/
+    │   ├── .claude-plugin/
+    │   │   └── plugin.json      # Claude Code 插件清单
+    │   ├── codebuddy-integration.md  # CodeBuddy CLI / ACP 调用笔记
+    │   ├── dispatch-design.md   # dispatch skill 设计文档
+    │   └── skills/
+    │       └── dispatch/        # 后台任务派发（status/result/list/kill）
 ```
 
 ## 添加新插件

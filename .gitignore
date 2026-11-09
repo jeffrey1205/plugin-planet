@@ -3,4 +3,5 @@
 .mimocode/
 .codebuddy/
 .workbuddy/
+.omp/
 __pycache__/

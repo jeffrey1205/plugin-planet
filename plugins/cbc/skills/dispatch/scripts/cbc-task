@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """cbc-task — dispatch background tasks to the CodeBuddy CLI (cbc).
 
-Subcommands: dispatch / status / result / list / kill.
+Subcommands: run / check / status / result / list / kill.
 Runs `cbc -p <comment> --output-format json` detached; converges task state
 lazily on every status/list/result read. No third-party dependencies.
 """
@@ -28,6 +28,10 @@ EXIT_UNAVAILABLE = 5    # cbc missing / task not launchable
 DEFAULT_TIMEOUT = 600
 STARTING_GRACE = 10      # seconds without pid/exit.code before "stale"
 NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$')
+DEFAULT_BIN_DIRS = (    # fallback search when CBC_BIN and PATH come up empty
+    '/opt/WorkBuddy/resources/app.asar.unpacked/cli/bin',
+    '~/.local/bin',
+)
 
 
 def die(msg, code):
@@ -59,18 +63,37 @@ def read_text(path):
         return None
 
 
-def find_cbc():
+def default_bin_dirs():
+    """Fallback dirs (colon-separated CBC_BIN_DIRS overrides DEFAULT_BIN_DIRS)."""
+    raw = os.environ.get('CBC_BIN_DIRS')
+    dirs = raw.split(os.pathsep) if raw is not None else DEFAULT_BIN_DIRS
+    return [os.path.expanduser(d) for d in dirs if d]
+
+
+def resolve_cbc():
+    """Return (path, error): path when resolvable, else error message."""
     cand = os.environ.get('CBC_BIN')
     if cand:
         if os.path.isfile(cand) and os.access(cand, os.X_OK):
-            return cand
-        die('CBC_BIN is set but not executable: %s' % cand, EXIT_UNAVAILABLE)
+            return cand, None
+        return None, 'CBC_BIN is set but not executable: %s' % cand
     for name in ('codebuddy', 'cbc'):
         found = shutil.which(name)
         if found:
-            return found
-    die("cbc not found: set CBC_BIN or add 'codebuddy'/'cbc' to PATH",
-        EXIT_UNAVAILABLE)
+            return found, None
+    for d in default_bin_dirs():
+        for name in ('codebuddy', 'cbc'):
+            cand = os.path.join(d, name)
+            if os.path.isfile(cand) and os.access(cand, os.X_OK):
+                return cand, None
+    return None, ("cbc not found: set CBC_BIN or add 'codebuddy'/'cbc' to PATH")
+
+
+def find_cbc():
+    path, err = resolve_cbc()
+    if path is None:
+        die(err, EXIT_UNAVAILABLE)
+    return path
 
 
 def pid_alive(pid):
@@ -250,7 +273,51 @@ def monitor(cmd, d, timeout, stdin_text=None):
     os._exit(0)
 
 
-def cmd_dispatch(args):
+CBC_SETUP_HINT = (
+    'hint: 设置 cbc 二进制，然后重跑 check：\n'
+    'hint:   export CBC_BIN=<cbc 可执行文件路径>\n'
+    'hint:   或把 codebuddy / cbc 所在目录加进 PATH\n'
+    'hint:   或放入默认搜索目录：/opt/WorkBuddy/resources/app.asar.unpacked/cli/bin、~/.local/bin\n'
+    'hint: 查找：command -v codebuddy || command -v cbc\n'
+    'hint: export 只在当前 shell 调用内有效；需与 run 写在同一条命令里，\n'
+    'hint: 或写入 shell 启动文件。'
+)
+
+AUTH_SETUP_HINT = (
+    'hint: 补 CODEBUDDY_AUTH_TOKEN：见 SKILL.md「取 CODEBUDDY_AUTH_TOKEN」，\n'
+    'hint: 或交互跑一次 cbc 并执行 /login（登录态落盘后无需该变量）。\n'
+    'hint: token 会过期，过期后重新登录再取。'
+)
+
+
+def cmd_check():
+    """Preflight for dispatch: verify binary + auth env, start no task."""
+    path, err = resolve_cbc()
+    if path:
+        print('cbc: ok %s' % path)
+    else:
+        print('cbc: FAIL %s' % err)
+    has_token = bool(os.environ.get('CODEBUDDY_AUTH_TOKEN'))
+    if has_token:
+        print('auth: ok CODEBUDDY_AUTH_TOKEN set')
+    else:
+        print('auth: warn CODEBUDDY_AUTH_TOKEN not set; relying on cbc '
+              'logged-in state (static check cannot verify it)')
+    if path is None:
+        print(CBC_SETUP_HINT)
+    if not has_token:
+        print(AUTH_SETUP_HINT)
+    if path is None:
+        print('ready: no')
+        sys.exit(EXIT_UNAVAILABLE)
+    print('ready: yes')
+
+
+def start_task(args):
+    """Validate args, create the task dir, fork the monitor. Returns tid.
+
+    Prints nothing: run prints only the outcome.
+    """
     if args.timeout < 0:
         die('--timeout must be >= 0', EXIT_USAGE)
     cbc = find_cbc()
@@ -290,7 +357,21 @@ def cmd_dispatch(args):
                 or os.path.exists(os.path.join(d, 'exit.code'))):
             break
         time.sleep(0.01)
-    print(tid)
+    return tid
+
+
+def cmd_run(args):
+    """Preflight -> dispatch -> poll -> print outcome. Quiet on failure."""
+    path, err = resolve_cbc()
+    if path is None:
+        die('%s；运行 scripts/cbc-task check 查看设置提示' % err,
+            EXIT_UNAVAILABLE)
+    tid = start_task(args)
+    while finalize(tid)[0] == 'running':
+        time.sleep(2)
+    text, code = result_outcome(tid)
+    print(text)
+    sys.exit(code)
 
 
 def require_task(tid):
@@ -306,12 +387,13 @@ def cmd_status(tid):
         print(detail)
 
 
-def cmd_result(tid):
-    require_task(tid)
+def result_outcome(tid):
+    """Outcome of a terminal task: (text, exit code).
+
+    done -> (result text, '' when missing, 0);
+    failed -> (result text, detail when missing, 1).
+    """
     state, detail = finalize(tid)
-    if state == 'running':
-        print('task %s still running' % tid, file=sys.stderr)
-        sys.exit(EXIT_RUNNING)
     meta = None
     raw = read_text(os.path.join(task_path(tid), 'result.json'))
     if raw:
@@ -321,10 +403,19 @@ def cmd_result(tid):
             meta = None
     text = meta.get('result') if meta else None
     if state == 'done':
-        print(text if text is not None else '')
-        sys.exit(EXIT_OK)
-    print(text if text is not None else detail)
-    sys.exit(EXIT_FAILED)
+        return (text if text is not None else ''), EXIT_OK
+    return (text if text is not None else detail), EXIT_FAILED
+
+
+def cmd_result(tid):
+    require_task(tid)
+    state, detail = finalize(tid)
+    if state == 'running':
+        print('task %s still running' % tid, file=sys.stderr)
+        sys.exit(EXIT_RUNNING)
+    text, code = result_outcome(tid)
+    print(text)
+    sys.exit(code)
 
 
 def cmd_list():
@@ -372,30 +463,37 @@ def cmd_kill(tid):
     print('killed %s' % tid)
 
 
+def add_task_args(sp):
+    sp.add_argument('--model', help='model id, passed through unvalidated')
+    sp.add_argument('--name', help='task id (default: auto-generated)')
+    sp.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
+                    help='kill task after N seconds (0 = no limit)')
+    sp.add_argument('--permission-mode', default='dontAsk',
+                    help='cbc permission mode (default: dontAsk)')
+    sp.add_argument('comment', nargs='+', help='task prompt')
+
+
 def build_parser():
     p = argparse.ArgumentParser(
         prog='cbc-task',
         description='Dispatch background tasks to CodeBuddy CLI (cbc).')
     sub = p.add_subparsers(dest='cmd', required=True)
-    d = sub.add_parser('dispatch', help='start a background task')
-    d.add_argument('--model', help='model id, passed through unvalidated')
-    d.add_argument('--name', help='task id (default: auto-generated)')
-    d.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
-                   help='kill task after N seconds (0 = no limit)')
-    d.add_argument('--permission-mode', default='dontAsk',
-                   help='cbc permission mode (default: dontAsk)')
-    d.add_argument('comment', nargs='+', help='task prompt')
+    r = sub.add_parser('run', help='start a task, wait, print only the outcome')
+    add_task_args(r)
     for name in ('status', 'result', 'kill'):
         sp = sub.add_parser(name)
         sp.add_argument('id')
+    sub.add_parser('check', help='verify cbc binary and auth env first')
     sub.add_parser('list', help='list tasks')
     return p
 
 
 def main(argv):
     args = build_parser().parse_args(argv)
-    if args.cmd == 'dispatch':
-        cmd_dispatch(args)
+    if args.cmd == 'run':
+        cmd_run(args)
+    elif args.cmd == 'check':
+        cmd_check()
     elif args.cmd == 'status':
         cmd_status(args.id)
     elif args.cmd == 'result':

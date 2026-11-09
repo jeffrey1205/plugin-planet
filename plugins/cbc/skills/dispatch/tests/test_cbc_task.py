@@ -16,6 +16,7 @@ SCRIPT = os.path.join(os.path.dirname(HERE), 'scripts', 'cbc-task')
 
 FAKE_CBC = '''#!/bin/sh
 printf '%s\\n' "$@" > "$FAKE_ARGS_FILE"
+printf '%s\\n' "${CODEBUDDY_AUTH_TOKEN:-}" > "$FAKE_ENV_FILE"
 if [ -n "$FAKE_STDIN_FILE" ]; then cat > "$FAKE_STDIN_FILE"; fi
 if [ -n "$FAKE_STDERR" ]; then printf '%s\\n' "$FAKE_STDERR" >&2; fi
 if [ "$FAKE_MODE" = sleep ]; then sleep "${FAKE_SLEEP:-2}"; fi
@@ -45,6 +46,16 @@ ISERROR_JSON = json.dumps([
      "duration_ms": 10, "num_turns": 1, "usage": {}},
 ])
 
+AUTHERR_JSON = json.dumps([
+    {"type": "message", "role": "assistant",
+     "providerData": {"model": "hy3"},
+     "content": [{"type": "output_text", "text": "err"}]},
+    {"type": "result", "subtype": "error", "is_error": True,
+     "result": "Authentication required. Please use /login command "
+               "to sign in to your account",
+     "duration_ms": 10, "num_turns": 1, "usage": {}},
+])
+
 
 class CbcTaskCli(unittest.TestCase):
 
@@ -58,6 +69,16 @@ class CbcTaskCli(unittest.TestCase):
         self.args_file = os.path.join(self.tmp, 'argv.txt')
         self.out_file = os.path.join(self.tmp, 'cbc-out.txt')
         self.stdin_file = os.path.join(self.tmp, 'cbc-stdin.txt')
+        self.env_file = os.path.join(self.tmp, 'cbc-env.txt')
+        self.wb_log = os.path.join(self.tmp, 'wb.log')
+        self.extractor = os.path.join(self.tmp, 'fake-wb')
+        with open(self.extractor, 'w') as f:
+            f.write('#!/bin/sh\n'
+                    'echo x >> "$FAKE_WB_LOG"\n'
+                    'if [ -n "$FAKE_WB_FAIL" ]; then '
+                    'echo "no login state" >&2; exit 1; fi\n'
+                    'printf "auto-token\\n"\n')
+        os.chmod(self.extractor, 0o755)
         self._write_out(SUCCESS_JSON)
 
     def tearDown(self):
@@ -81,6 +102,10 @@ class CbcTaskCli(unittest.TestCase):
             'FAKE_STDIN_FILE': self.stdin_file,
             'FAKE_MODE': 'run',
             'FAKE_EXIT': '0',
+            'WB_AUTH_TOKEN_BIN': self.extractor,
+            'FAKE_WB_LOG': self.wb_log,
+            'FAKE_ENV_FILE': self.env_file,
+            'FAKE_WB_FAIL': '',
         }
         env.update(over)
         return env
@@ -99,8 +124,16 @@ class CbcTaskCli(unittest.TestCase):
             [sys.executable, SCRIPT, 'run', *args],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
 
-    def status(self, tid):
-        return self.cli('status', tid)
+    def status(self, tid, env=None):
+        """state+detail synthesized from a `list` row (no status subcommand)."""
+        r = self.cli('list', **({'env': env} if env else {}))
+        for line in r.stdout.splitlines():
+            f = line.split('\t')
+            if len(f) >= 4 and f[0] == tid:
+                out = f[1] + (('\n' + f[3]) if f[3] else '')
+                return subprocess.CompletedProcess(r.args, 0, out, r.stderr)
+        return subprocess.CompletedProcess(r.args, 4, '',
+                                           'task not found: %s\n' % tid)
 
     @staticmethod
     def _state(r):
@@ -221,9 +254,6 @@ class CbcTaskCli(unittest.TestCase):
         p.wait(timeout=15)
 
     def test_unknown_task(self):
-        r = self.cli('status', 'no-such-task')
-        self.assertNotEqual(r.returncode, 0)
-        self.assertIn('not found', r.stderr)
         r = self.cli('result', 'no-such-task')
         self.assertNotEqual(r.returncode, 0)
         self.assertIn('not found', r.stderr)
@@ -251,30 +281,13 @@ class CbcTaskCli(unittest.TestCase):
         with open(self.args_file) as f:
             self.assertIn('-p', f.read().splitlines())
 
-    def test_check_ready_with_binary_and_token(self):
-        r = self.cli('check', env={'CODEBUDDY_AUTH_TOKEN': 'tok'})
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn('cbc: ok', r.stdout)
-        self.assertIn('auth: ok', r.stdout)
-        self.assertIn('ready: yes', r.stdout)
+    def test_check_subcommand_removed(self):
+        r = self.cli('check')
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
 
-    def test_check_fails_without_binary(self):
-        empty = os.path.join(self.tmp, 'emptybin')
-        os.makedirs(empty)
-        r = self.cli('check', env={'CBC_BIN': '', 'PATH': empty})
-        self.assertEqual(r.returncode, 5, r.stdout + r.stderr)
-        self.assertIn('cbc: FAIL', r.stdout)
-        self.assertIn('ready: no', r.stdout)
-        self.assertIn('hint:', r.stdout)
-        self.assertIn('CBC_BIN', r.stdout)
-
-    def test_check_warns_when_token_unset(self):
-        r = self.cli('check', env={'CODEBUDDY_AUTH_TOKEN': ''})
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn('auth: warn', r.stdout)
-        self.assertIn('ready: yes', r.stdout)
-        self.assertIn('hint:', r.stdout)
-        self.assertIn('CODEBUDDY_AUTH_TOKEN', r.stdout)
+    def test_status_subcommand_removed(self):
+        r = self.cli('status', 'x')
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
 
     def test_list_shows_done_task(self):
         r = self.cli('run', '--name', 'listed1', 'x')
@@ -352,7 +365,7 @@ class CbcTaskCli(unittest.TestCase):
         root = os.path.join(self.tmp, 'cbc-tasks-%d' % os.getuid())
         self.assertTrue(os.path.isdir(os.path.join(root, 'tmpdir1')),
                         'task dir should derive from TMPDIR')
-        s = self.cli('status', 'tmpdir1', env=env)
+        s = self.status('tmpdir1', env=env)
         self.assertEqual(self._state(s), 'done', s.stdout)
 
 
@@ -373,15 +386,46 @@ class CbcTaskCli(unittest.TestCase):
         self.assertIn('400 model [nope] service info not found', r.stdout)
         self.assertEqual(r.stderr, '')
 
-    def test_run_env_unready_is_one_line_quiet(self):
+    def test_run_env_unready_prints_hint_block(self):
         empty = os.path.join(self.tmp, 'emptybin')
         os.makedirs(empty)
         r = self.cli('run', 'x', env={'CBC_BIN': '', 'PATH': empty})
         self.assertEqual(r.returncode, 5, r.stdout + r.stderr)
         self.assertEqual(r.stdout, '')
-        self.assertEqual(r.stderr.count('\n'), 1, repr(r.stderr))
-        self.assertIn('check', r.stderr)
-        self.assertNotIn('hint:', r.stderr)
+        self.assertIn('hint:', r.stderr)
+        self.assertIn('CBC_BIN', r.stderr)
+
+    def test_run_auto_extracts_token_when_env_unset(self):
+        r = self.cli('run', '--name', 'auth1', 'x')
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        with open(self.env_file) as f:
+            self.assertEqual(f.read().strip(), 'auto-token')
+        self.assertTrue(os.path.exists(self.wb_log))
+
+    def test_run_env_token_wins_no_extraction(self):
+        r = self.cli('run', '--name', 'auth2', 'x',
+                     env={'CODEBUDDY_AUTH_TOKEN': 'envtok'})
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        with open(self.env_file) as f:
+            self.assertEqual(f.read().strip(), 'envtok')
+        self.assertFalse(os.path.exists(self.wb_log))
+
+    def test_auth_failure_surfaces_extractor_error(self):
+        self._write_out(AUTHERR_JSON)
+        r = self.cli('run', '--name', 'auth3', 'x', env={'FAKE_WB_FAIL': '1'})
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertIn('Authentication required', r.stdout)
+        self.assertIn('wb-auth-token 提取失败', r.stdout)
+        self.assertIn('no login state', r.stdout)
+        self.assertIn('重新登录 WorkBuddy', r.stdout)
+
+    def test_auth_failure_after_extraction_appends_remedy(self):
+        self._write_out(AUTHERR_JSON)
+        r = self.cli('run', '--name', 'auth4', 'x')
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertIn('Authentication required', r.stdout)
+        self.assertIn('重新登录 WorkBuddy', r.stdout)
+        self.assertNotIn('提取失败', r.stdout)
 
     def test_run_timeout_fails_quietly(self):
         r = self.cli('run', '--name', 'run4', 'x', '--timeout', '1',

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """cbc-task — dispatch background tasks to the CodeBuddy CLI (cbc).
 
-Subcommands: run / check / status / result / list / kill.
+Subcommands: run / result / list / kill.
 Runs `cbc -p <comment> --output-format json` detached; converges task state
-lazily on every status/list/result read. No third-party dependencies.
+lazily on every list/result read. No third-party dependencies.
+Auth: CODEBUDDY_AUTH_TOKEN env wins; else auto-extract via sibling
+wb-auth-token (WB_AUTH_TOKEN_BIN overrides the extractor path; tests/diag).
 """
 
 import argparse
@@ -87,13 +89,6 @@ def resolve_cbc():
             if os.path.isfile(cand) and os.access(cand, os.X_OK):
                 return cand, None
     return None, ("cbc not found: set CBC_BIN or add 'codebuddy'/'cbc' to PATH")
-
-
-def find_cbc():
-    path, err = resolve_cbc()
-    if path is None:
-        die(err, EXIT_UNAVAILABLE)
-    return path
 
 
 def pid_alive(pid):
@@ -274,53 +269,44 @@ def monitor(cmd, d, timeout, stdin_text=None):
 
 
 CBC_SETUP_HINT = (
-    'hint: 设置 cbc 二进制，然后重跑 check：\n'
+    'hint: cbc 未就绪，设置后重跑：\n'
     'hint:   export CBC_BIN=<cbc 可执行文件路径>\n'
     'hint:   或把 codebuddy / cbc 所在目录加进 PATH\n'
     'hint:   或放入默认搜索目录：/opt/WorkBuddy/resources/app.asar.unpacked/cli/bin、~/.local/bin\n'
-    'hint: 查找：command -v codebuddy || command -v cbc\n'
-    'hint: export 只在当前 shell 调用内有效；需与 run 写在同一条命令里，\n'
-    'hint: 或写入 shell 启动文件。'
+    'hint: 查找：command -v codebuddy || command -v cbc'
 )
 
-AUTH_SETUP_HINT = (
-    'hint: 补 CODEBUDDY_AUTH_TOKEN：见 SKILL.md「取 CODEBUDDY_AUTH_TOKEN」，\n'
-    'hint: 或交互跑一次 cbc 并执行 /login（登录态落盘后无需该变量）。\n'
-    'hint: token 会过期，过期后重新登录再取。'
-)
+AUTH_FAIL_REMEDY = ('处置：重新登录 WorkBuddy 后重试（重跑 run 会自动重新提取）；'
+                    '或显式设置 CODEBUDDY_AUTH_TOKEN 环境变量。')
 
 
-def cmd_check():
-    """Preflight for dispatch: verify binary + auth env, start no task."""
-    path, err = resolve_cbc()
-    if path:
-        print('cbc: ok %s' % path)
-    else:
-        print('cbc: FAIL %s' % err)
-    has_token = bool(os.environ.get('CODEBUDDY_AUTH_TOKEN'))
-    if has_token:
-        print('auth: ok CODEBUDDY_AUTH_TOKEN set')
-    else:
-        print('auth: warn CODEBUDDY_AUTH_TOKEN not set; relying on cbc '
-              'logged-in state (static check cannot verify it)')
-    if path is None:
-        print(CBC_SETUP_HINT)
-    if not has_token:
-        print(AUTH_SETUP_HINT)
-    if path is None:
-        print('ready: no')
-        sys.exit(EXIT_UNAVAILABLE)
-    print('ready: yes')
+def ensure_auth_token():
+    """Ensure CODEBUDDY_AUTH_TOKEN for the child cbc. Returns (source, err).
+    source: 'env' caller-provided; 'extracted' wb-auth-token ok; None failed.
+    Extraction never prints; token lives in env only (never on disk)."""
+    if os.environ.get('CODEBUDDY_AUTH_TOKEN'):
+        return 'env', None
+    extractor = os.environ.get('WB_AUTH_TOKEN_BIN') or os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 'wb-auth-token')
+    try:
+        p = subprocess.run([extractor], capture_output=True, text=True,
+                           timeout=30)
+    except (OSError, subprocess.SubprocessError) as e:
+        return None, str(e)
+    token = p.stdout.strip()
+    if p.returncode == 0 and token:
+        os.environ['CODEBUDDY_AUTH_TOKEN'] = token
+        return 'extracted', None
+    return None, (p.stderr.strip() or 'exit %d' % p.returncode)
 
 
-def start_task(args):
+def start_task(args, cbc):
     """Validate args, create the task dir, fork the monitor. Returns tid.
 
     Prints nothing: run prints only the outcome.
     """
     if args.timeout < 0:
         die('--timeout must be >= 0', EXIT_USAGE)
-    cbc = find_cbc()
     stdin_mode = args.comment == ['-']
     if stdin_mode:
         comment = sys.stdin.read()
@@ -364,12 +350,17 @@ def cmd_run(args):
     """Preflight -> dispatch -> poll -> print outcome. Quiet on failure."""
     path, err = resolve_cbc()
     if path is None:
-        die('%s；运行 scripts/cbc-task check 查看设置提示' % err,
-            EXIT_UNAVAILABLE)
-    tid = start_task(args)
+        die('%s\n%s' % (err, CBC_SETUP_HINT), EXIT_UNAVAILABLE)
+    src, auth_err = ensure_auth_token()
+    tid = start_task(args, path)
     while finalize(tid)[0] == 'running':
         time.sleep(2)
     text, code = result_outcome(tid)
+    if code and src != 'env' and 'Authentication required' in text:
+        if src is None:
+            text += '\nwb-auth-token 提取失败：%s\n%s' % (auth_err, AUTH_FAIL_REMEDY)
+        else:
+            text += '\n%s' % AUTH_FAIL_REMEDY
     print(text)
     sys.exit(code)
 
@@ -377,14 +368,6 @@ def cmd_run(args):
 def require_task(tid):
     if not os.path.isdir(task_path(tid)):
         die('task not found: %s' % tid, EXIT_NOT_FOUND)
-
-
-def cmd_status(tid):
-    require_task(tid)
-    state, detail = finalize(tid)
-    print(state)
-    if detail:
-        print(detail)
 
 
 def result_outcome(tid):
@@ -480,10 +463,9 @@ def build_parser():
     sub = p.add_subparsers(dest='cmd', required=True)
     r = sub.add_parser('run', help='start a task, wait, print only the outcome')
     add_task_args(r)
-    for name in ('status', 'result', 'kill'):
+    for name in ('result', 'kill'):
         sp = sub.add_parser(name)
         sp.add_argument('id')
-    sub.add_parser('check', help='verify cbc binary and auth env first')
     sub.add_parser('list', help='list tasks')
     return p
 
@@ -492,10 +474,6 @@ def main(argv):
     args = build_parser().parse_args(argv)
     if args.cmd == 'run':
         cmd_run(args)
-    elif args.cmd == 'check':
-        cmd_check()
-    elif args.cmd == 'status':
-        cmd_status(args.id)
     elif args.cmd == 'result':
         cmd_result(args.id)
     elif args.cmd == 'list':

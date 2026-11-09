@@ -17,10 +17,51 @@ disable-model-invocation: true
   认证失败会作为任务结果文本回传
 - 本 skill 目录下的 `scripts/cbc-task`（python3 标准库，无第三方依赖）
 
+## 首次配置
+
+缺 `CBC_BIN` 或 `CODEBUDDY_AUTH_TOKEN` 时按本节补齐；两者都只需设置一次
+（写入 shell rc 或每次派发前 export）。
+
+### 找 cbc 二进制
+
+```bash
+command -v codebuddy || command -v cbc     # PATH 里有就直接用
+# 没有 → WorkBuddy 自带 CLI（本机实测路径）：
+export CBC_BIN=/opt/WorkBuddy/resources/app.asar.unpacked/cli/bin/codebuddy
+```
+
+### 取 CODEBUDDY_AUTH_TOKEN
+
+三种来源，任取其一（按优先级）：
+
+1. **环境已带**（CI secret、已配置的 shell rc）→ 直接用。
+2. **cbc 自身登录**：交互跑一次 `cbc`，在 TUI 里 `/login`；登录态落盘后
+   后续任务无需该变量。
+3. **解密本机 WorkBuddy 登录态**（WorkBuddy 已登录、cbc 未登录时）：
+   登录态 `~/.local/share/CodeBuddyExtension/Data/Public/auth/workbuddy-desktop.info`
+   的 `auth.accessToken` 在 5.6.2+ 是 AES-256-GCM 信封，需用签到助手脚本的
+   `load_credentials()` 解密（只读，不打印、不外传 token）：
+
+   ```bash
+   export CODEBUDDY_AUTH_TOKEN="$(python3 -c "
+   from importlib.machinery import SourceFileLoader
+   m = SourceFileLoader('wbauth', '$HOME/.workbuddy/file-history/<签到脚本目录>/ef75a2c37b9af340@v1').load_module()
+   t, d = m.load_credentials('$HOME/.local/share/CodeBuddyExtension/Data/Public/auth/workbuddy-desktop.info')
+   print(t, end='')")"
+   ```
+
+   注意：
+   - 路径用 `$HOME` 或 `os.path.expanduser('~...')`；**引号内的裸 `~` 不会被
+     shell 展开**（`python3 -c "..."` 内的 `~` 同理），必须用 `$HOME`。
+   - 签到脚本的 `find_login_state()` 缺 Linux 的
+     `~/.local/share/CodeBuddyExtension` 候选路径，须显式传文件路径。
+   - token 有效期 30 天（登录态 `expiresAt`），过期后重新登录 WorkBuddy 再取；
+     解密依赖脚本内的密钥发现逻辑，客户端升级可能使其失效。
+
 ## 调用形式
 
 ```
-cbc:dispatch --model <id> [--name <n>] [--timeout <s>] [--permission-mode <m>] <comment...>
+dispatch --model <id> [--name <n>] [--timeout <s>] [--permission-mode <m>] <comment...>
 ```
 
 用你的 shell 工具执行（skill 目录下）：
@@ -77,7 +118,7 @@ scripts/cbc-task dispatch --model hy3 --name pr-review \
 | 结果 / detail | 含义 | 处置 |
 |---|---|---|
 | `400 model [...] service info not found` | 模型名非法，附账号可用清单 | 换名重发 |
-| `Authentication required...` | 认证缺失或 token 过期 | 刷新 `CODEBUDDY_AUTH_TOKEN` |
+| `Authentication required...` | 认证缺失或 token 过期 | 按「首次配置」补/刷新 `CODEBUDDY_AUTH_TOKEN` |
 | failed + `timeout` | 超过 `--timeout` 被杀 | 加大 timeout 或拆小任务 |
 | failed + `stale` | 进程异常消失（无退出码） | 重新 dispatch |
 

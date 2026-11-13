@@ -1,8 +1,8 @@
 {
   "name": "cbc",
   "displayName": "CBC Dispatch",
-  "description": "后台任务派发：把 prompt 交给 CodeBuddy CLI（cbc）非阻塞执行，dispatch 立即返回任务 id，之后查状态、取最终结果，思考与中途输出仅本地存档",
-  "version": "1.0.3",
+  "description": "后台任务派发：把 prompt 交给 CodeBuddy CLI（cbc）非交互执行，一条命令阻塞至任务结束、只回最终结果，思考与中途输出仅本地存档",
+  "version": "1.1.0",
   "author": {
     "name": "Jeffrey"
   },

@@ -70,6 +70,32 @@ class WbAuthToken(unittest.TestCase):
         self.assertEqual(r.stdout.strip(), 'fixture.jwt.token')
         self.assertEqual(r.stderr, '')
 
+    def test_encrypted_envelope_with_persisted_key_file(self):
+        """密钥落盘（~/.workbuddy/scripts/atrest.key）时无需任何环境变量。"""
+        key_dir = os.path.join(self.tmp, '.workbuddy', 'scripts')
+        os.makedirs(key_dir)
+        with open(os.path.join(key_dir, 'atrest.key'), 'w') as f:
+            f.write(ATREST_KEY + '\n')
+        self._write_auth({'$wbEncrypted': 1, 'envelope': ENVELOPE_FIXTURE},
+                         expires_at=int(time.time()) + 3600)
+        r = self.run_script()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout.strip(), 'fixture.jwt.token')
+        self.assertEqual(r.stderr, '')
+
+    def test_foreign_key_file_is_skipped(self):
+        """落盘的是别的密钥（keyId 不匹配）时不得误用，仍需报错退出。"""
+        key_dir = os.path.join(self.tmp, '.workbuddy', 'scripts')
+        os.makedirs(key_dir)
+        with open(os.path.join(key_dir, 'atrest.key'), 'w') as f:
+            f.write('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\n')
+        self._write_auth({'$wbEncrypted': 1, 'envelope': ENVELOPE_FIXTURE},
+                         expires_at=int(time.time()) + 3600)
+        r = self.run_script()
+        self.assertEqual(r.returncode, 1)
+        self.assertEqual(r.stdout, '')
+        self.assertNotEqual(r.stderr.strip(), '')
+
     def test_missing_login_state_fails_cleanly(self):
         shutil.rmtree(self.auth_dir)  # 干净 HOME：无任何登录态候选
         r = self.run_script()

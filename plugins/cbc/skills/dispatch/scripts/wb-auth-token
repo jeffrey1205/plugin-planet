@@ -11,6 +11,10 @@
   - token 只输出到 stdout，供 export CODEBUDDY_AUTH_TOKEN="$(scripts/wb-auth-token)"
     捕获；不写盘、不进日志，异常信息不回显 token
 
+密钥（atRestSecretKey）来源，按序尝试：环境变量 WORKBUDDY_ATREST_KEY →
+WORKBUDDY_ATREST_KEY_FILE → ~/.workbuddy/scripts/atrest.key（跨平台，唯一无需
+额外配置的自动来源）→ Windows DPAPI blob → Windows 客户端进程内存。
+
 用法：无参数。成功 stdout 一行 token；失败 stderr 提示、退出 1。
 """
 import sys
@@ -659,14 +663,32 @@ def _discover_at_rest_key_from_memory(target_key_id):
         return None
 
 
+def _key_file_candidates():
+    """本机已落盘的 atRestSecretKey 文件（跨平台，非 Windows 也可用）。"""
+    cfg = os.environ.get("CODEBUDDY_CONFIG_DIR") or os.path.join(
+        os.path.expanduser("~"), ".workbuddy")
+    home_cfg = os.path.join(os.path.expanduser("~"), ".workbuddy")
+    cands = [os.path.join(cfg, "scripts", "atrest.key"),
+             os.path.join(cfg, "atrest.key"),
+             os.path.join(home_cfg, "scripts", "atrest.key"),
+             os.path.join(home_cfg, "atrest.key")]
+    seen, out = set(), []
+    for p in cands:
+        if p not in seen:
+            seen.add(p)
+            out.append(p)
+    return out
+
+
 def _discover_at_rest_key(target_key_id):
     """定位并解开 atRestSecretKey（44 字符规范 base64），要求其派生 keyId == target_key_id。
 
     优先顺序：
       1) 环境变量 WORKBUDDY_ATREST_KEY（直接给密钥串）
       2) 环境变量 WORKBUDDY_ATREST_KEY_FILE（指向密钥文件）
-      3) 扫描登录态所在 Data 目录下的 DPAPI blob，逐个解开并校验 keyId
-      4) 扫描运行中 WorkBuddy.exe 进程内存（5.6.2 密钥只驻留内存、磁盘无落盘文件的可靠途径）
+      3) 本机已落盘的密钥文件 ~/.workbuddy/scripts/atrest.key（非 Windows 的唯一途径）
+      4) 扫描登录态所在 Data 目录下的 DPAPI blob，逐个解开并校验 keyId（仅 Windows）
+      5) 扫描运行中 WorkBuddy.exe 进程内存（仅 Windows）
     返回 atRestSecretKey 字符串；找不到则抛 RuntimeError（带可操作提示）。
     """
     # 1) 直接给密钥
@@ -682,7 +704,17 @@ def _discover_at_rest_key(target_key_id):
             return _candidate_to_at_rest_key(raw, target_key_id)
         except Exception:
             pass
-    # 3) 扫描 DPAPI blob 自动发现
+    # 3) 本机已落盘的密钥文件：Windows 之外的平台没有 DPAPI / 进程内存途径，
+    #    这是唯一无需用户额外配置的自动来源（由 WorkBuddy 侧工具一次性写入）。
+    for path in _key_file_candidates():
+        if not os.path.isfile(path):
+            continue
+        try:
+            raw = open(path, "rb").read()
+            return _candidate_to_at_rest_key(raw, target_key_id)
+        except Exception:
+            continue
+    # 4) 扫描 DPAPI blob 自动发现
     roots = _at_rest_scan_roots()
     DPAPI_MAGIC = b"\x01\x00\x00\x00\xd0\x8c\x9d\x0a"
     dpapi_tried = 0
@@ -708,7 +740,7 @@ def _discover_at_rest_key(target_key_id):
                     return candidate
             except Exception:
                 continue
-    # 4) 扫描运行中客户端进程内存（5.6.2 的 atRestSecretKey 不落盘、只驻留 WorkBuddy.exe 内存）
+    # 5) 扫描运行中客户端进程内存（5.6.2 的 atRestSecretKey 不落盘、只驻留 WorkBuddy.exe 内存）
     try:
         mem_key = _discover_at_rest_key_from_memory(target_key_id)
     except Exception:
@@ -721,10 +753,12 @@ def _discover_at_rest_key(target_key_id):
         "可选项：\n"
         "  (a) 确认 WorkBuddy 客户端已启动并登录（密钥只驻留客户端进程内存，客户端未运行则无法解密），"
         "且本脚本与客户端在同一 Windows 用户下运行；\n"
-        "  (b) 复制本机登录态所在 Data 目录下由 WorkBuddy 加密的密钥文件，设置环境变量 "
-        "WORKBUDDY_ATREST_KEY_FILE=该文件绝对路径；\n"
-        "  (c) 直接设置 WORKBUDDY_ATREST_KEY=<44字符规范base64>；\n"
-        "  (d) 退回 WorkBuddy 5.5.x 客户端（该版本登录态为明文，旧脚本即可用）。\n"
+        "  (b) 把密钥落盘到 ~/.workbuddy/scripts/atrest.key（44 字符规范 base64，权限 0600），"
+        "脚本会自动读取；\n"
+        "  (c) 设置 WORKBUDDY_ATREST_KEY_FILE=<密钥文件绝对路径> 或 "
+        "WORKBUDDY_ATREST_KEY=<44字符规范base64>；\n"
+        "  (d) 直接设置 CODEBUDDY_AUTH_TOKEN=<有效 token>，跳过登录态解密；\n"
+        "  (e) 退回 WorkBuddy 5.5.x 客户端（该版本登录态为明文，旧脚本即可用）。\n"
         "注：客户端以管理员权限运行而本脚本未提权（或相反）时，进程内存扫描会被系统拒绝。"
         % dpapi_tried)
 

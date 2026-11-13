@@ -6,6 +6,8 @@ Runs `cbc -p <comment> --output-format json` detached; converges task state
 lazily on every list/result read. No third-party dependencies.
 Auth: CODEBUDDY_AUTH_TOKEN env wins; else auto-extract via sibling
 wb-auth-token (WB_AUTH_TOKEN_BIN overrides the extractor path; tests/diag).
+Env: the child gets a whitelisted environment (CHILD_ENV_ALLOW); harness
+runtime shims and host-routing vars inherited from the caller make cbc hang.
 """
 
 import argparse
@@ -29,10 +31,37 @@ EXIT_UNAVAILABLE = 5    # cbc missing / task not launchable
 
 DEFAULT_TIMEOUT = 600
 STARTING_GRACE = 10      # seconds without pid/exit.code before "stale"
+STALE_RECHECKS = 3       # re-read exit.code before declaring a dead pid stale
+STALE_RECHECK_DELAY = 0.2
 NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$')
 DEFAULT_BIN_DIRS = (    # fallback search when CBC_BIN and PATH come up empty
     '/opt/WorkBuddy/resources/app.asar.unpacked/cli/bin',
     '~/.local/bin',
+)
+
+# The child cbc gets exactly these vars (plus lowercase proxy twins). A parent
+# harness injects its own runtime shims and host-routing vars (seen in the wild:
+# CODEBUDDY_HOST=workbuddy-desktop, CODEBUDDY_SERVICE_PROXY_URL, and
+# NODE_OPTIONS --require / BASH_ENV / PYTHONPATH pointing at a shim); cbc
+# started under those hangs with no output and no exit. So the environment is
+# rebuilt from an allow list instead of filtered, which is harness-agnostic.
+CHILD_ENV_ALLOW = (
+    # POSIX
+    'HOME', 'USER', 'LOGNAME', 'SHELL', 'PATH', 'TMPDIR', 'TZ', 'TERM',
+    'LANG', 'LANGUAGE', 'LC_ALL', 'LC_CTYPE', 'LC_MESSAGES',
+    # Windows
+    'SYSTEMROOT', 'WINDIR', 'USERPROFILE', 'HOMEDRIVE', 'HOMEPATH',
+    'APPDATA', 'LOCALAPPDATA', 'PROGRAMDATA', 'PROGRAMFILES', 'COMSPEC',
+    'PATHEXT',
+    # network / TLS
+    'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
+    'SSL_CERT_FILE', 'SSL_CERT_DIR', 'NODE_EXTRA_CA_CERTS',
+    'REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE',
+    # git over ssh (tasks that push need the caller's agent socket)
+    'SSH_AUTH_SOCK', 'GIT_SSH_COMMAND', 'GIT_ASKPASS',
+    # auth / endpoint overrides owned by this tool
+    'CODEBUDDY_AUTH_TOKEN', 'CODEBUDDY_API_KEY', 'CODEBUDDY_CONFIG_DIR',
+    'CODEBUDDY_BASE_URL',
 )
 
 
@@ -68,8 +97,36 @@ def read_text(path):
 def default_bin_dirs():
     """Fallback dirs (colon-separated CBC_BIN_DIRS overrides DEFAULT_BIN_DIRS)."""
     raw = os.environ.get('CBC_BIN_DIRS')
-    dirs = raw.split(os.pathsep) if raw is not None else DEFAULT_BIN_DIRS
+    if raw is not None:
+        dirs = [d for d in raw.split(os.pathsep) if d]
+    else:
+        dirs = list(DEFAULT_BIN_DIRS)
+        # 从 WorkBuddy 内部调用时按产品资源目录定位，不依赖平台固定路径
+        for env in ('WORKBUDDY_RESOURCES_PATH', 'WORKBUDDY_APP_PATH'):
+            base = os.environ.get(env)
+            if base:
+                dirs.insert(0, os.path.join(
+                    base, 'app.asar.unpacked', 'cli', 'bin'))
+                dirs.insert(0, os.path.join(
+                    os.path.dirname(base), 'app.asar.unpacked', 'cli', 'bin'))
     return [os.path.expanduser(d) for d in dirs if d]
+
+
+def child_env():
+    """Environment for the cbc child: whitelist (+ CBC_ENV_PASS extras)."""
+    env = {k: os.environ[k] for k in CHILD_ENV_ALLOW if k in os.environ}
+    for name in ('HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY'):
+        if name.lower() in os.environ:
+            env[name.lower()] = os.environ[name.lower()]
+    for name in os.environ.get('CBC_ENV_PASS', '').replace(',', ' ').split():
+        if name in os.environ:
+            env[name] = os.environ[name]
+    env['PATH'] = os.environ.get('PATH', '/usr/local/bin:/usr/bin:/bin')
+    try:
+        env['PWD'] = os.getcwd()
+    except OSError:
+        pass
+    return env
 
 
 def resolve_cbc():
@@ -200,6 +257,17 @@ def finalize(tid):
         pid = int(pid_text.strip())
         if pid_alive(pid):
             return 'running', 'pid %d' % pid
+        # The monitor is between waitpid() and writing exit.code for a moment;
+        # declaring "stale" there would freeze a finished task as failed and
+        # drop its result.json for good (early return above never re-checks).
+        for _ in range(STALE_RECHECKS):
+            time.sleep(STALE_RECHECK_DELAY)
+            code_text = read_text(os.path.join(d, 'exit.code'))
+            if code_text is not None and code_text.strip():
+                try:
+                    return finish(d, int(code_text.strip()))
+                except ValueError:
+                    break
         state, detail = 'failed', 'stale: process gone (no exit code)'
         atomic_write(os.path.join(d, 'status'), '%s\n%s\n' % (state, detail))
         return state, detail
@@ -233,13 +301,11 @@ def monitor(cmd, d, timeout, stdin_text=None):
                 open(os.path.join(d, 'stderr.log'), 'wb') as err:
             p = subprocess.Popen(
                 cmd, stdout=out, stderr=err, start_new_session=True,
+                env=child_env(),
                 stdin=(subprocess.PIPE if stdin_text is not None else None))
-            if stdin_text is not None:
-                try:
-                    p.stdin.write(stdin_text.encode())
-                    p.stdin.close()
-                except BrokenPipeError:
-                    pass
+        # Publish pid and arm the timeout BEFORE feeding stdin: a prompt larger
+        # than the pipe buffer blocks in write() until cbc drains it, and that
+        # wait must not look like "never started" (nor escape --timeout).
         cb_pid = p.pid
         atomic_write(os.path.join(d, 'pid'), str(cb_pid))
         if timeout > 0:
@@ -252,6 +318,12 @@ def monitor(cmd, d, timeout, stdin_text=None):
                     pass
             signal.signal(signal.SIGALRM, on_alarm)
             signal.alarm(timeout)
+        if stdin_text is not None:
+            try:
+                p.stdin.write(stdin_text.encode())
+                p.stdin.close()
+            except OSError:      # broken pipe when cbc exits before reading
+                pass
         _, st = os.waitpid(cb_pid, 0)
         signal.alarm(0)
         if timed_out:
@@ -276,8 +348,8 @@ CBC_SETUP_HINT = (
     'hint: 查找：command -v codebuddy || command -v cbc'
 )
 
-AUTH_FAIL_REMEDY = ('处置：重新登录 WorkBuddy 后重试（重跑 run 会自动重新提取）；'
-                    '或显式设置 CODEBUDDY_AUTH_TOKEN 环境变量。')
+AUTH_FAIL_REMEDY = ('处置：设置 CODEBUDDY_AUTH_TOKEN 后重跑；本机有桌面客户端时，'
+                    '重新登录后再跑也会自动重新提取。')
 
 
 def ensure_auth_token():
@@ -333,6 +405,12 @@ def start_task(args, cbc):
                '--permission-mode', args.permission_mode]
     if args.model:
         cmd += ['--model', args.model]
+    for flag, value in (('--effort', args.effort),
+                        ('--fallback-model', args.fallback_model)):
+        if value is not None:
+            cmd += [flag, str(value)]
+    if args.add_dir:
+        cmd += ['--add-dir'] + list(args.add_dir)
     if os.fork() == 0:
         monitor(cmd, d, args.timeout,
                 stdin_text=comment if stdin_mode else None)
@@ -448,6 +526,13 @@ def cmd_kill(tid):
 
 def add_task_args(sp):
     sp.add_argument('--model', help='model id, passed through unvalidated')
+    sp.add_argument('--effort', default='max',
+                    help='reasoning effort: minimal|low|medium|high|xhigh|max '
+                         '(default: max)')
+    sp.add_argument('--fallback-model',
+                    help='fallback model when the primary is overloaded')
+    sp.add_argument('--add-dir', action='append', default=[],
+                    metavar='DIR', help='extra dir the task may read (repeatable)')
     sp.add_argument('--name', help='task id (default: auto-generated)')
     sp.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
                     help='kill task after N seconds (0 = no limit)')

@@ -15,13 +15,19 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPT = os.path.join(os.path.dirname(HERE), 'scripts', 'cbc-task')
 
 FAKE_CBC = '''#!/bin/sh
-printf '%s\\n' "$@" > "$FAKE_ARGS_FILE"
-printf '%s\\n' "${CODEBUDDY_AUTH_TOKEN:-}" > "$FAKE_ENV_FILE"
-if [ -n "$FAKE_STDIN_FILE" ]; then cat > "$FAKE_STDIN_FILE"; fi
-if [ -n "$FAKE_STDERR" ]; then printf '%s\\n' "$FAKE_STDERR" >&2; fi
-if [ "$FAKE_MODE" = sleep ]; then sleep "${FAKE_SLEEP:-2}"; fi
-cat "$FAKE_STDOUT_FILE"
-exit "${FAKE_EXIT:-0}"
+# State lives next to this script, not in the environment: cbc-task hands the
+# child a whitelisted env, so FAKE_* vars would not survive. No dirname(1)
+# either — some tests run with a PATH that holds only cat and sleep.
+D=${0%/*}; [ "$D" = "$0" ] && D=.
+printf '%s\\n' "$@" > "$D/argv.txt"
+printf '%s\\n' "${CODEBUDDY_AUTH_TOKEN:-}" > "$D/token.txt"
+env > "$D/env.txt"
+cat > "$D/stdin.actual"
+[ -f "$D/stderr.txt" ] && cat "$D/stderr.txt" >&2
+if [ "$(cat "$D/mode" 2>/dev/null)" = sleep ]; then sleep "$(cat "$D/sleep")"; fi
+cat "$D/stdout.json" 2>/dev/null
+code=0; [ -f "$D/exit.code" ] && code=$(cat "$D/exit.code")
+exit "$code"
 '''
 
 SUCCESS_JSON = json.dumps([
@@ -67,9 +73,14 @@ class CbcTaskCli(unittest.TestCase):
             f.write(FAKE_CBC)
         os.chmod(self.fake, 0o755)
         self.args_file = os.path.join(self.tmp, 'argv.txt')
-        self.out_file = os.path.join(self.tmp, 'cbc-out.txt')
-        self.stdin_file = os.path.join(self.tmp, 'cbc-stdin.txt')
-        self.env_file = os.path.join(self.tmp, 'cbc-env.txt')
+        self.out_file = os.path.join(self.tmp, 'stdout.json')
+        self.stdin_file = os.path.join(self.tmp, 'stdin.actual')
+        self.env_file = os.path.join(self.tmp, 'token.txt')
+        self.stderr_file = os.path.join(self.tmp, 'stderr.txt')
+        self.mode_file = os.path.join(self.tmp, 'mode')
+        self.sleep_file = os.path.join(self.tmp, 'sleep')
+        self.exit_file = os.path.join(self.tmp, 'exit.code')
+        self._children = []
         self.wb_log = os.path.join(self.tmp, 'wb.log')
         self.extractor = os.path.join(self.tmp, 'fake-wb')
         with open(self.extractor, 'w') as f:
@@ -82,6 +93,12 @@ class CbcTaskCli(unittest.TestCase):
         self._write_out(SUCCESS_JSON)
 
     def tearDown(self):
+        for child in self._children:
+            try:
+                child.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                child.kill()
+                child.wait()
         shutil.rmtree(self.tmp, ignore_errors=True)
 
     # -- helpers ----------------------------------------------------------
@@ -90,6 +107,29 @@ class CbcTaskCli(unittest.TestCase):
         with open(self.out_file, 'w') as f:
             f.write(content)
 
+    def set_sleep(self, seconds):
+        with open(self.mode_file, 'w') as f:
+            f.write('sleep')
+        with open(self.sleep_file, 'w') as f:
+            f.write(str(seconds))
+
+    def set_exit(self, code):
+        with open(self.exit_file, 'w') as f:
+            f.write(str(code))
+
+    def set_stderr(self, text):
+        with open(self.stderr_file, 'w') as f:
+            f.write(text + '\n')
+
+    def read_argv(self, path=None):
+        with open(path or self.args_file) as f:
+            return f.read().splitlines()
+
+    def read_child_env(self, path=None):
+        with open(path or os.path.join(self.tmp, 'env.txt')) as f:
+            return dict(line.split('=', 1) for line in f.read().splitlines()
+                        if '=' in line)
+
     def _env(self, **over):
         env = {
             'PATH': os.environ.get('PATH', '/usr/bin:/bin'),
@@ -97,14 +137,8 @@ class CbcTaskCli(unittest.TestCase):
             'CBC_BIN': self.fake,
             'CBC_BIN_DIRS': '',
             'CBC_TASK_DIR': self.tasks,
-            'FAKE_ARGS_FILE': self.args_file,
-            'FAKE_STDOUT_FILE': self.out_file,
-            'FAKE_STDIN_FILE': self.stdin_file,
-            'FAKE_MODE': 'run',
-            'FAKE_EXIT': '0',
             'WB_AUTH_TOKEN_BIN': self.extractor,
             'FAKE_WB_LOG': self.wb_log,
-            'FAKE_ENV_FILE': self.env_file,
             'FAKE_WB_FAIL': '',
         }
         env.update(over)
@@ -190,7 +224,8 @@ class CbcTaskCli(unittest.TestCase):
 
     def test_nonzero_exit_marks_failed(self):
         self._write_out('cbc exploded\n')
-        r = self.cli('run', '--name', 'bad1', 'x', env={'FAKE_EXIT': '1'})
+        self.set_exit(1)
+        r = self.cli('run', '--name', 'bad1', 'x')
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
         self.assertIn('exit 1', r.stdout)
         s = self.status('bad1')
@@ -220,8 +255,8 @@ class CbcTaskCli(unittest.TestCase):
         self.assertEqual(rr.returncode, 1)
 
     def test_running_then_kill(self):
-        p = self.bg_run('--name', 'long1', 'x',
-                        env={'FAKE_MODE': 'sleep', 'FAKE_SLEEP': '60'})
+        self.set_sleep(60)
+        p = self.bg_run('--name', 'long1', 'x')
         self.wait_state('long1', 'running')
         s = self.status('long1')
         self.assertEqual(self._state(s), 'running', s.stdout)
@@ -233,8 +268,8 @@ class CbcTaskCli(unittest.TestCase):
         p.wait(timeout=15)
 
     def test_timeout_kills_and_marks_failed(self):
-        r = self.cli('run', '--name', 'to1', 'x', '--timeout', '1',
-                     env={'FAKE_MODE': 'sleep', 'FAKE_SLEEP': '60'})
+        self.set_sleep(60)
+        r = self.cli('run', '--name', 'to1', 'x', '--timeout', '1')
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
         self.assertIn('timeout', r.stdout)
         s = self.status('to1')
@@ -244,8 +279,8 @@ class CbcTaskCli(unittest.TestCase):
         self.assertEqual(rr.returncode, 1)
 
     def test_duplicate_name_rejected(self):
-        p = self.bg_run('--name', 'dup', 'x',
-                        env={'FAKE_MODE': 'sleep', 'FAKE_SLEEP': '10'})
+        self.set_sleep(10)
+        p = self.bg_run('--name', 'dup', 'x')
         self.wait_state('dup', 'running')
         r2 = self.cli('run', '--name', 'dup', 'y')
         self.assertEqual(r2.returncode, 3, r2.stdout + r2.stderr)
@@ -269,6 +304,8 @@ class CbcTaskCli(unittest.TestCase):
         d = os.path.join(self.tmp, 'defaultbin')
         os.makedirs(d)
         shutil.copy(self.fake, os.path.join(d, 'codebuddy'))
+        with open(os.path.join(d, 'stdout.json'), 'w') as f:
+            f.write(SUCCESS_JSON)
         # PATH holds coreutils the fake needs, but no codebuddy/cbc:
         # only the default dirs can resolve a binary.
         pdir = os.path.join(self.tmp, 'pathbin')
@@ -278,8 +315,8 @@ class CbcTaskCli(unittest.TestCase):
         env = {'CBC_BIN': '', 'PATH': pdir, 'CBC_BIN_DIRS': d}
         r = self.cli('run', '--name', 'defbin', 'x', env=env)
         self.assertEqual(r.returncode, 0, r.stderr)
-        with open(self.args_file) as f:
-            self.assertIn('-p', f.read().splitlines())
+        # the copied fake keeps its state next to itself, not in self.tmp
+        self.assertIn('-p', self.read_argv(os.path.join(d, 'argv.txt')))
 
     def test_check_subcommand_removed(self):
         r = self.cli('check')
@@ -312,6 +349,24 @@ class CbcTaskCli(unittest.TestCase):
         self.assertEqual(self._state(s), 'failed', s.stdout)
         self.assertIn('stale', s.stdout)
 
+    def test_exit_code_arriving_after_pid_death_is_not_stale(self):
+        """monitor 在 waitpid 回收与写 exit.code 之间时，不得把完成的任务判死。"""
+        d = os.path.join(self.tasks, 'race1')
+        os.makedirs(d)
+        for name, text in (('prompt.log', 'x'), ('status', 'running\n'),
+                           ('full.json', SUCCESS_JSON)):
+            with open(os.path.join(d, name), 'w') as f:
+                f.write(text)
+        p = subprocess.Popen([sys.executable, '-c', 'pass'])
+        p.wait()
+        with open(os.path.join(d, 'pid'), 'w') as f:
+            f.write(str(p.pid))
+        late = os.path.join(d, 'exit.code')
+        self._children.append(subprocess.Popen(
+            ['/bin/sh', '-c', 'sleep 0.3; printf 0 > "%s"' % late]))
+        s = self.status('race1')
+        self.assertEqual(self._state(s), 'done', s.stdout)
+
     def test_stdin_prompt(self):
         text = 'STDIN_PROMPT 内容\n第二行'
         r = self.cli('run', '--name', 'stdin1', '-', input=text)
@@ -336,9 +391,8 @@ class CbcTaskCli(unittest.TestCase):
 
     def test_failed_task_surfaces_stderr_text(self):
         self._write_out('')
-        r = self.cli('run', '--name', 'stderr1', 'x',
-                     env={'FAKE_STDERR':
-                          '400 model [nope] service info not found'})
+        self.set_stderr('400 model [nope] service info not found')
+        r = self.cli('run', '--name', 'stderr1', 'x')
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
         self.assertIn('400 model [nope]', r.stdout)
         s = self.status('stderr1')
@@ -417,19 +471,19 @@ class CbcTaskCli(unittest.TestCase):
         self.assertIn('Authentication required', r.stdout)
         self.assertIn('wb-auth-token 提取失败', r.stdout)
         self.assertIn('no login state', r.stdout)
-        self.assertIn('重新登录 WorkBuddy', r.stdout)
+        self.assertIn('CODEBUDDY_AUTH_TOKEN', r.stdout)
 
     def test_auth_failure_after_extraction_appends_remedy(self):
         self._write_out(AUTHERR_JSON)
         r = self.cli('run', '--name', 'auth4', 'x')
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
         self.assertIn('Authentication required', r.stdout)
-        self.assertIn('重新登录 WorkBuddy', r.stdout)
+        self.assertIn('CODEBUDDY_AUTH_TOKEN', r.stdout)
         self.assertNotIn('提取失败', r.stdout)
 
     def test_run_timeout_fails_quietly(self):
-        r = self.cli('run', '--name', 'run4', 'x', '--timeout', '1',
-                     env={'FAKE_MODE': 'sleep', 'FAKE_SLEEP': '60'})
+        self.set_sleep(60)
+        r = self.cli('run', '--name', 'run4', 'x', '--timeout', '1')
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
         self.assertIn('timeout', r.stdout)
         self.assertEqual(r.stderr, '')
@@ -444,6 +498,63 @@ class CbcTaskCli(unittest.TestCase):
         self.assertIn('hy3', argv)
         with open(self.stdin_file) as f:
             self.assertEqual(f.read(), 'STDIN')
+
+    def test_quality_flags_passthrough(self):
+        r = self.cli('run', '--name', 'q1', '--effort', 'high',
+                     '--fallback-model', 'hy3', '--add-dir', '/tmp/a',
+                     '--add-dir', '/tmp/b', 'review this')
+        self.assertEqual(r.returncode, 0, r.stderr)
+        argv = self.read_argv()
+        for pair in (['--effort', 'high'], ['--fallback-model', 'hy3']):
+            self.assertIn(pair[0], argv)
+            self.assertIn(pair[1], argv)
+        self.assertEqual(argv.count('--add-dir'), 1, argv)
+        self.assertIn('/tmp/a', argv)
+        self.assertIn('/tmp/b', argv)
+
+    def test_quality_defaults(self):
+        r = self.cli('run', '--name', 'q2', 'plain')
+        self.assertEqual(r.returncode, 0, r.stderr)
+        argv = self.read_argv()
+        self.assertEqual(argv[argv.index('--effort') + 1], 'max')
+        for flag in ('--autocompact', '--max-turns', '--fallback-model',
+                     '--add-dir'):
+            self.assertNotIn(flag, argv)
+
+    def test_removed_flags_rejected(self):
+        for flag in ('--autocompact', '--max-turns'):
+            r = self.cli('run', '--name', 'gone', flag, 'auto', 'x')
+            self.assertEqual(r.returncode, 2, r.stderr)
+            self.assertIn('unrecognized arguments', r.stderr)
+
+    def test_child_env_scrubbed_of_harness_vars(self):
+        r = self.cli('run', '--name', 'env1', 'x', env={
+            'CODEBUDDY_HOST': 'workbuddy-desktop',
+            'CODEBUDDY_SERVICE_PROXY_URL': 'http://127.0.0.1:1/x',
+            'NODE_OPTIONS': '--require=/nonexistent/shim.cjs',
+            'PYTHONPATH': '/nonexistent/shim',
+            'BASH_ENV': '/nonexistent/shim.sh',
+        })
+        self.assertEqual(r.returncode, 0, r.stderr)
+        env = self.read_child_env()
+        for scrubbed in ('CODEBUDDY_HOST', 'CODEBUDDY_SERVICE_PROXY_URL',
+                         'NODE_OPTIONS', 'PYTHONPATH', 'BASH_ENV'):
+            self.assertNotIn(scrubbed, env)
+        self.assertEqual(env.get('CODEBUDDY_AUTH_TOKEN'), 'auto-token')
+        self.assertIn('PATH', env)
+
+    def test_child_env_pass_escape_hatch(self):
+        r = self.cli('run', '--name', 'env2', 'x', env={
+            'CBC_ENV_PASS': 'JAVA_HOME,GOPATH',
+            'JAVA_HOME': '/opt/jdk',
+            'GOPATH': '/tmp/gopath',
+            'SECRET_UNRELATED': 'nope',
+        })
+        self.assertEqual(r.returncode, 0, r.stderr)
+        env = self.read_child_env()
+        self.assertEqual(env.get('JAVA_HOME'), '/opt/jdk')
+        self.assertEqual(env.get('GOPATH'), '/tmp/gopath')
+        self.assertNotIn('SECRET_UNRELATED', env)
 
 
 if __name__ == '__main__':

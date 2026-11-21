@@ -10,7 +10,8 @@
 /plugin marketplace add jeffrey1205/plugin-planet
 
 /plugin install codegraph@plugin-planet
-/plugin install golang-dev@plugin-planet
+/plugin install golang@plugin-planet
+/plugin install golang-mcp@plugin-planet
 /plugin install coder@plugin-planet
 /plugin install thinker@plugin-planet
 /plugin install rtk@plugin-planet
@@ -27,7 +28,8 @@
 codex plugin marketplace add jeffrey1205/plugin-planet
 
 codex plugin add codegraph@plugin-planet
-codex plugin add golang-dev@plugin-planet
+codex plugin add golang@plugin-planet
+codex plugin add golang-mcp@plugin-planet
 codex plugin add coder@plugin-planet
 codex plugin add thinker@plugin-planet
 codex plugin add docs@plugin-planet
@@ -40,7 +42,8 @@ codex plugin add context7@plugin-planet
 /plugin marketplace add jeffrey1205/plugin-planet
 
 /plugin install codegraph@plugin-planet
-/plugin install golang-dev@plugin-planet
+/plugin install golang@plugin-planet
+/plugin install golang-mcp@plugin-planet
 /plugin install coder@plugin-planet
 /plugin install thinker@plugin-planet
 /plugin install docs@plugin-planet
@@ -54,8 +57,9 @@ codex plugin add context7@plugin-planet
 | 插件名 | 类型 | 描述 |
 |--------|------|------|
 | [codegraph](./plugins/codegraph) | MCP Server + Skill | 代码图谱MCP服务器，提供语义搜索、调用图分析、影响分析 |
-| [golang-dev](./plugins/golang-dev) | MCP Server + Skill | Go开发工具集：gopls MCP语义分析、MCP编排工具、Rob Pike的Go Proverbs编程哲学指导 |
-| [coder](./plugins/coder) | Skill | 编程大师思维工具集：Karpathy编码指南与Linus Torvalds的代码品味、架构哲学 |
+| [golang](./plugins/golang) | Skill | Go Proverbs编程哲学：并发、接口、零值、cgo、unsafe、reflection、错误处理与文档，19篇分片按需加载，无MCP依赖 |
+| [golang-mcp](./plugins/golang-mcp) | MCP Server + Skill | gopls MCP语义分析与工具编排；需本机安装gopls，宿主已内置LSP工具时无需安装 |
+| [coder](./plugins/coder) | Skill | 编程思维工具集：karpathy约束后端实现语义与改动边界，linus-torvalds裁决架构与高风险评审 |
 | [thinker](./plugins/thinker) | Skill | 思维工具集：deepen需求深度重构、grill-me前提拷问，适合放在brainstorming后使用 |
 | [rtk](./plugins/rtk) | Hook | CLI输出过滤工具，减少LLM token消耗（节省60-90%） |
 | [statusline](./plugins/statusline) | Command + Script | 双宿主状态行（CodeBuddy Code / Claude Code）：上下文进度、Git、Token、请求数、Credits、Effort |
@@ -82,14 +86,18 @@ codex plugin add context7@plugin-planet
     │   ├── .mcp.json            # MCP 服务器配置
     │   └── skills/
     │       └── codegraph/       # codegraph 使用指导
-    ├── golang-dev/
+    ├── golang/
+    │   ├── .claude-plugin/
+    │   │   └── plugin.json      # 插件清单
+    │   └── skills/
+    │       └── rob-pike/        # Go Proverbs 全阶段指导（19篇分片）
+    ├── golang-mcp/
     │   ├── .claude-plugin/
     │   │   └── plugin.json      # 插件清单
     │   ├── .mcp.json            # gopls MCP 服务器配置
     │   └── skills/
     │       ├── gopls/           # gopls 语义分析工具使用指导
-    │       ├── mcp-orch/        # MCP 编排工具
-    │       └── rob-pike/        # Go Proverbs 全阶段指导
+    │       └── mcp-orch/        # codegraph / gopls 编排
     ├── coder/
     │   ├── .claude-plugin/
     │   │   └── plugin.json      # 插件清单

@@ -1,0 +1,33 @@
+{
+  "name": "golang-mcp",
+  "version": "1.0.0",
+  "description": "Go语义分析的MCP工具集：gopls MCP服务器、gopls使用指导，以及codegraph/gopls的工具编排。需要本机安装gopls二进制。",
+  "author": {
+    "name": "Jeffrey"
+  },
+  "homepage": "https://github.com/jeffrey1205/claude-plugins",
+  "license": "MIT",
+  "keywords": [
+    "go",
+    "gopls",
+    "lsp",
+    "mcp",
+    "code-analysis",
+    "orchestration"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Golang MCP Toolkit",
+    "shortDescription": "gopls MCP语义分析与工具编排",
+    "longDescription": "通过MCP接入gopls的语义能力：符号搜索、引用、包API、重命名、workspace诊断与Go漏洞检查，并提供codegraph/gopls的编排规则。仅适用于支持MCP的宿主，且需本机安装gopls。",
+    "developerName": "Jeffrey",
+    "category": "Development",
+    "capabilities": [
+      "gopls MCP",
+      "Go Semantic Analysis",
+      "MCP Orchestration"
+    ],
+    "websiteURL": "https://github.com/jeffrey1205/claude-plugins"
+  }
+}

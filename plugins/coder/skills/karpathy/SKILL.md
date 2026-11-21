@@ -1,72 +1,41 @@
 ---
 name: karpathy
-description: 日常编码纪律。写新代码、改代码、重构、补测试、常规 code review 时，必须先加载本 skill：约束最小实现、只改必要的行、暴露假设、给出可验证的成功标准。架构选型、API 与兼容性契约、高风险评审不适用，改用 linus-torvalds。
+description: 后端实现的语义边界。当业务规则存在歧义（舍入、顺序、幂等、超时、重试）、需要划分错误路径、或判断改动范围时加载。普通编译错误、格式化、类型问题不适用；架构与 API 契约裁决用 linus-torvalds。
 ---
 
-# Karpathy Guidelines
+# Karpathy 实现语义
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+只补充宿主系统提示未覆盖的部分。**测试策略、是否提问、改后是否复核 diff，一律以宿主提示为准，本 skill 不另立规则。** 冲突时宿主优先。
 
-## 分工与同时加载
+## 分工
 
-- 本 skill 负责日常实现纪律；架构选型、API 与兼容性契约、高风险评审由 `linus-torvalds` 裁决。
-- 两个 skill 同时命中时：`linus-torvalds` 出技术裁决与审查结论，本 skill 负责落地时的改动纪律。
-- 结论冲突时以 `linus-torvalds` 的裁决为准；实现范围仍按本 skill 的"只改必要行"执行。
+- 架构选型、API 与兼容性契约、高风险评审：`linus-torvalds` 裁决。
+- 本 skill：业务语义澄清与改动边界。同时命中时，裁决归 linus，落地归本 skill。
 
-## 1. Think Before Coding
+## 业务语义待定项
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+需求未写明的语义是**解释选择**，实现前先摊开，不要静默选一个：
 
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- Business semantics the request doesn't pin down — rounding, ordering, idempotency, timeout, retry — are interpretation choices: surface them first.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
+| 维度 | 要问清楚的问题 |
+| --- | --- |
+| 舍入 | 金额/计数向上、向下还是银行家舍入？边界值归哪一侧？ |
+| 顺序 | 输出顺序是否属于契约？并发完成顺序是否影响结果？ |
+| 幂等 | 同一请求重放是否可接受？去重键是什么？ |
+| 超时 | 哪个环节设超时？超时后重试、降级还是失败？ |
+| 重试 | 次数、退避、哪些错误可重试？是否叠加幂等？ |
 
-## 2. Simplicity First
+能由代码、配置或既有测试确定时，直接查证，不要问用户。
 
-**Minimum code that solves the problem. Nothing speculative.**
+## 错误路径的边界
 
-- No features beyond what was asked.
-- No abstractions for single-use code — unless the abstraction names an invariant or a trust boundary that would otherwise stay implicit.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for scenarios that cannot occur by construction (type system, or validated earlier in the same function).
-- These are NOT impossible and need explicit failure paths: external input, file/network I/O, deserialization, concurrency, third-party APIs.
-- If you write 200 lines and it could be 50 without losing observable behavior, invariants, or real error paths, rewrite it.
+- **不写**：按构造不可能发生的分支——类型系统已排除，或同一函数内已校验过。
+- **必须写**：外部输入、文件与网络 I/O、反序列化、并发、第三方 API。这是契约的一部分，不是防御性冗余。
 
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+## 改动范围
 
-## 3. Surgical Changes
+- 不改进相邻代码、注释或格式；不重构没坏的东西。
+- 发现无关问题只说明，不擅自扩大任务。
+- 自己改动造成的孤儿（失效的 import、变量、函数）要清理；既有的死代码不动。
+- 每一行改动都应能追溯到用户的需求。
 
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+判据：实现的规模明显超出所需行为（不含真实错误路径）时，压缩它。

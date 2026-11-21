@@ -20,10 +20,25 @@
       ]
     },
     {
-      "name": "golang-dev",
-      "description": "Go开发工具集：gopls MCP语义分析、MCP编排工具、Rob Pike的Go Proverbs编程哲学指导",
+      "name": "golang",
+      "description": "Go编程哲学：Rob Pike的Go Proverbs，覆盖并发、接口、零值、cgo、unsafe、reflection、错误处理与文档，19篇proverb分片按需加载。无MCP依赖。",
       "category": "development",
-      "source": "./plugins/golang-dev",
+      "source": "./plugins/golang",
+      "homepage": "https://github.com/jeffrey1205/claude-plugins",
+      "keywords": [
+        "go",
+        "rob-pike",
+        "go-proverbs",
+        "code-review",
+        "architecture",
+        "concurrency"
+      ]
+    },
+    {
+      "name": "golang-mcp",
+      "description": "Go语义分析的MCP工具集：gopls MCP服务器、gopls使用指导，以及codegraph/gopls的工具编排。需要本机安装gopls二进制。",
+      "category": "development",
+      "source": "./plugins/golang-mcp",
       "homepage": "https://github.com/jeffrey1205/claude-plugins",
       "keywords": [
         "go",
@@ -31,8 +46,7 @@
         "lsp",
         "mcp",
         "code-analysis",
-        "rob-pike",
-        "architecture"
+        "orchestration"
       ]
     },
     {

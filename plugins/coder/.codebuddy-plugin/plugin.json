@@ -1,12 +1,20 @@
 {
   "name": "coder",
-  "version": "2.0.1",
-  "description": "编程大师思维工具集：Karpathy编码指南与Linus Torvalds的代码品味、架构哲学，适用于后端及系统编程场景",
+  "version": "2.1.0",
+  "description": "编程大师思维工具集：karpathy约束后端实现语义与改动边界，linus-torvalds裁决架构与高风险评审。适用于后端及系统编程场景。",
   "author": {
     "name": "Jeffrey"
   },
   "homepage": "https://github.com/jeffrey1205/claude-plugins",
   "license": "MIT",
-  "keywords": ["go", "c", "python", "code-review", "karpathy", "linus-torvalds", "architecture"],
+  "keywords": [
+    "go",
+    "c",
+    "python",
+    "code-review",
+    "karpathy",
+    "linus-torvalds",
+    "architecture"
+  ],
   "skills": "./skills/"
 }

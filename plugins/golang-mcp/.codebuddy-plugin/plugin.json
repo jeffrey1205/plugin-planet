@@ -1,0 +1,13 @@
+{
+  "name": "golang-mcp",
+  "version": "1.0.0",
+  "description": "Go语义分析的MCP工具集：gopls MCP服务器、gopls使用指导，以及codegraph/gopls的工具编排。需要本机安装gopls二进制。",
+  "author": {
+    "name": "Jeffrey"
+  },
+  "homepage": "https://github.com/jeffrey1205/claude-plugins",
+  "license": "MIT",
+  "keywords": ["go", "gopls", "lsp", "mcp", "code-analysis", "orchestration"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}

@@ -1,6 +1,6 @@
 ---
 name: codegraph
-description: 代码结构查询的默认入口：问「怎么工作/调用链/影响范围/谁调用/改了会怎样」时，必须先加载本 skill 并调用 codegraph_explore，不要先用 grep/read 重建关系。仅适用于已存在 .codegraph 索引的代码库；简单文件读取或文本搜索不适用。
+description: 代码结构查询（怎么工作/调用链/影响范围）先加载本 skill 再调 codegraph_explore，勿用 grep/read 重建。需 .codegraph 索引；单文件读取、文本搜索不适用。
 ---
 
 # CodeGraph 语义代码图谱

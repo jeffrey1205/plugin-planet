@@ -12,10 +12,10 @@
       "source": "./plugins/codegraph"
     },
     {
-      "name": "golang",
+      "name": "golanger",
       "description": "Go编程哲学：Rob Pike的Go Proverbs，覆盖并发、接口、零值、cgo、unsafe、reflection、错误处理与文档，19篇proverb分片按需加载。无MCP依赖。",
       "homepage": "https://github.com/jeffrey1205/claude-plugins",
-      "source": "./plugins/golang"
+      "source": "./plugins/golanger"
     },
     {
       "name": "golang-mcp",

@@ -1,5 +1,5 @@
 ---
-name: linus-torvalds
+name: linus
 description: 重大技术决策与高风险审查。架构选型、API 与兼容性契约、数据所有权、性能与安全评审时加载，输出带严重性、证据、最小修复的判断。日常写改与测试补全不适用；业务语义歧义与改动落地用 karpathy。
 ---
 

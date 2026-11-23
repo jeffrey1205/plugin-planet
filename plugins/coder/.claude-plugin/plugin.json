@@ -1,8 +1,8 @@
 {
   "name": "coder",
   "displayName": "Coder",
-  "description": "编程大师思维工具集：karpathy约束后端实现语义与改动边界，linus-torvalds裁决架构与高风险评审。适用于后端及系统编程场景。",
-  "version": "2.1.0",
+  "description": "编程大师思维工具集：karpathy约束后端实现语义与改动边界，linus裁决架构与高风险评审。适用于后端及系统编程场景。",
+  "version": "2.1.1",
   "author": {
     "name": "Jeffrey"
   },
@@ -14,7 +14,7 @@
     "python",
     "code-review",
     "karpathy",
-    "linus-torvalds",
+    "linus",
     "architecture"
   ]
 }

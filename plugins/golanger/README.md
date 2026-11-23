@@ -1,4 +1,4 @@
-# golang
+# golanger
 
 Rob Pike 的 Go Proverbs 编程哲学，纯知识包，无 MCP 依赖。
 
@@ -8,7 +8,7 @@ Rob Pike 的 Go Proverbs 编程哲学，纯知识包，无 MCP 依赖。
 
 | 插件 | 内容 | 依赖 |
 | --- | --- | --- |
-| `golang`（本插件） | `rob-pike` | 无 |
+| `golanger`（本插件） | `rob-pike` | 无 |
 | `golang-mcp` | `gopls`、`mcp-orch` + MCP 服务器声明 | 需本机安装 `gopls` |
 
 原 `golang-dev` 用户若需要 gopls 的 MCP 语义能力，改装 `golang-mcp`。只想要 Go Proverbs 的，本插件即可。

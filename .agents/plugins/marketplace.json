@@ -17,10 +17,10 @@
       "category": "Development"
     },
     {
-      "name": "golang",
+      "name": "golanger",
       "source": {
         "source": "local",
-        "path": "./plugins/golang"
+        "path": "./plugins/golanger"
       },
       "policy": {
         "installation": "AVAILABLE",

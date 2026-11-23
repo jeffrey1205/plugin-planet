@@ -2,7 +2,7 @@
   "name": "codegraph",
   "displayName": "CodeGraph",
   "description": "代码图谱MCP服务器，提供语义搜索、调用图分析、影响分析等功能",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": {
     "name": "Colby McHenry"
   },

@@ -2,7 +2,7 @@
   "name": "golang-mcp",
   "displayName": "Golang MCP Toolkit",
   "description": "Go语义分析的MCP工具集：gopls MCP服务器、gopls使用指导，以及codegraph/gopls的工具编排。需要本机安装gopls二进制。",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "Jeffrey"
   },

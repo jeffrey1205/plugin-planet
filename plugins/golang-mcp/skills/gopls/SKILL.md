@@ -1,6 +1,6 @@
 ---
 name: gopls
-description: 使用gopls MCP工具进行Go代码语义分析。当项目包含Go文件且gopls能加载对应workspace，任务涉及符号搜索、引用、包API、重命名、workspace诊断、项目结构或Go漏洞检查时使用；优先确认go.mod或go.work。适合Go特有的类型和AST分析，不用于非Go文件、普通文本搜索或行为验证。
+description: 用 gopls MCP 工具做 Go 语义分析：类型与 AST、符号搜索、引用、包 API、重命名、诊断、项目结构、漏洞检查。需 go.mod/go.work；文本搜索、行为验证不适用。
 ---
 
 # gopls 语义代码工具

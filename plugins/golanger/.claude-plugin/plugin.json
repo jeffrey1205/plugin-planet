@@ -1,12 +1,12 @@
 {
-  "name": "golang",
-  "version": "2.0.0",
+  "name": "golanger",
+  "displayName": "Go Proverbs",
   "description": "Go编程哲学：Rob Pike的Go Proverbs，覆盖并发、接口、零值、cgo、unsafe、reflection、错误处理与文档，19篇proverb分片按需加载。无MCP依赖。",
+  "version": "2.0.1",
   "author": {
     "name": "Jeffrey"
   },
   "homepage": "https://github.com/jeffrey1205/claude-plugins",
   "license": "MIT",
-  "keywords": ["go", "rob-pike", "go-proverbs", "code-review", "architecture", "concurrency"],
-  "skills": "./skills/"
+  "keywords": ["go", "rob-pike", "go-proverbs", "code-review", "architecture", "concurrency"]
 }

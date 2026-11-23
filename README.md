@@ -10,7 +10,7 @@
 /plugin marketplace add jeffrey1205/plugin-planet
 
 /plugin install codegraph@plugin-planet
-/plugin install golang@plugin-planet
+/plugin install golanger@plugin-planet
 /plugin install golang-mcp@plugin-planet
 /plugin install coder@plugin-planet
 /plugin install thinker@plugin-planet
@@ -28,7 +28,7 @@
 codex plugin marketplace add jeffrey1205/plugin-planet
 
 codex plugin add codegraph@plugin-planet
-codex plugin add golang@plugin-planet
+codex plugin add golanger@plugin-planet
 codex plugin add golang-mcp@plugin-planet
 codex plugin add coder@plugin-planet
 codex plugin add thinker@plugin-planet
@@ -42,7 +42,7 @@ codex plugin add context7@plugin-planet
 /plugin marketplace add jeffrey1205/plugin-planet
 
 /plugin install codegraph@plugin-planet
-/plugin install golang@plugin-planet
+/plugin install golanger@plugin-planet
 /plugin install golang-mcp@plugin-planet
 /plugin install coder@plugin-planet
 /plugin install thinker@plugin-planet
@@ -57,9 +57,9 @@ codex plugin add context7@plugin-planet
 | 插件名 | 类型 | 描述 |
 |--------|------|------|
 | [codegraph](./plugins/codegraph) | MCP Server + Skill | 代码图谱MCP服务器，提供语义搜索、调用图分析、影响分析 |
-| [golang](./plugins/golang) | Skill | Go Proverbs编程哲学：并发、接口、零值、cgo、unsafe、reflection、错误处理与文档，19篇分片按需加载，无MCP依赖 |
+| [golanger](./plugins/golanger) | Skill | Go Proverbs编程哲学：并发、接口、零值、cgo、unsafe、reflection、错误处理与文档，19篇分片按需加载，无MCP依赖 |
 | [golang-mcp](./plugins/golang-mcp) | MCP Server + Skill | gopls MCP语义分析与工具编排；需本机安装gopls，宿主已内置LSP工具时无需安装 |
-| [coder](./plugins/coder) | Skill | 编程思维工具集：karpathy约束后端实现语义与改动边界，linus-torvalds裁决架构与高风险评审 |
+| [coder](./plugins/coder) | Skill | 编程思维工具集：karpathy约束后端实现语义与改动边界，linus裁决架构与高风险评审 |
 | [thinker](./plugins/thinker) | Skill | 思维工具集：deepen需求深度重构、grill-me前提拷问，适合放在brainstorming后使用 |
 | [rtk](./plugins/rtk) | Hook | CLI输出过滤工具，减少LLM token消耗（节省60-90%） |
 | [statusline](./plugins/statusline) | Command + Script | 双宿主状态行（CodeBuddy Code / Claude Code）：上下文进度、Git、Token、请求数、Credits、Effort |
@@ -86,7 +86,7 @@ codex plugin add context7@plugin-planet
     │   ├── .mcp.json            # MCP 服务器配置
     │   └── skills/
     │       └── codegraph/       # codegraph 使用指导
-    ├── golang/
+    ├── golanger/
     │   ├── .claude-plugin/
     │   │   └── plugin.json      # 插件清单
     │   └── skills/
@@ -103,7 +103,7 @@ codex plugin add context7@plugin-planet
     │   │   └── plugin.json      # 插件清单
     │   └── skills/
     │       ├── karpathy/        # Karpathy 编码指南
-    │       └── linus-torvalds/  # Linus 编程哲学
+    │       └── linus/           # Linus 编程哲学
     ├── thinker/
     │   ├── .claude-plugin/
     │   │   └── plugin.json      # 插件清单

@@ -1,6 +1,6 @@
 ---
 name: dispatch
-description: 把任务派发给 CodeBuddy CLI（cbc）后台执行：审查 diff、让 cbc 独立完成一段单发任务。一次调用返回最终结果（阻塞至任务结束）；只回最终结果，不回传思考和中途输出。需要 cbc 二进制与可用认证。
+description: 把任务派发给 CodeBuddy CLI（cbc）后台执行：审查 diff、让 cbc 独立完成一段单发任务。一次调用返回最终结果（阻塞至任务结束）；只回最终结果，不回传思考和中途输出。
 disable-model-invocation: true
 ---
 

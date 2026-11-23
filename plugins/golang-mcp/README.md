@@ -29,4 +29,4 @@ export PATH="$PATH:$(go env GOPATH)/bin"
 
 ## 从 golang-dev 迁移
 
-原 `golang-dev` 已拆分：Go Proverbs 知识移入 `golang` 插件，本插件只保留 MCP 相关部分。
+原 `golang-dev` 已拆分：Go Proverbs 知识移入 `golanger` 插件，本插件只保留 MCP 相关部分。

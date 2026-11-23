@@ -1,6 +1,6 @@
 ---
 name: rob-pike
-description: 基于Go Proverbs指导agent进行Go代码设计、代码审查、并发设计、错误处理、调试和重构。当用户明确提到Rob Pike、Go Proverbs、某条proverb，或任务需要审查Go接口、零值、并发、cgo、unsafe、reflection、错误、panic、文档和代码清晰度时使用。不应因普通Go文件编辑而自动全量加载。
+description: Go Proverbs 工程指导：审查接口、零值、并发、cgo、unsafe、reflection、错误处理、panic、文档与清晰度时加载；也用于 Go 设计、调试与重构。普通编辑不加载。
 ---
 
 # Go Proverbs工程指导
@@ -74,7 +74,7 @@ description: 基于Go Proverbs指导agent进行Go代码设计、代码审查、�
 参考：Proverb #N — <title>
 ```
 
-字段与 `linus-torvalds` 一致，仅多一行 `参考`。两者同时命中时只输出**一组** finding，不要分别输出两遍。
+字段与 `linus` 一致，仅多一行 `参考`。两者同时命中时只输出**一组** finding，不要分别输出两遍。
 
 Proverb只是解释finding的工程依据。没有代码证据时，不得仅凭proverb生成问题。如果没有发现，明确说明并指出尚未运行的测试或未覆盖的平台。
 

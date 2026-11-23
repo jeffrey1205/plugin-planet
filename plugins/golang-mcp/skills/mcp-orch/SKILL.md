@@ -1,6 +1,6 @@
 ---
 name: mcp-orch
-description: Go 项目的语义工具编排：先判断要「关系」还是「事实」，再决定用 codegraph 还是 gopls。关系（怎么工作、调用链、依赖、影响范围）走 codegraph_explore；事实（符号引用、类型、包 API、重命名、诊断）走 gopls；只有一个或都没有时按可用性降级并说明缺什么。文件读取、配置搜索、测试与行为验证始终用内置工具。
+description: Go 语义工具编排：关系（怎么工作、调用链、依赖、影响范围）走 codegraph_explore；事实（引用、类型、包 API、重命名、诊断）走 gopls；读文件、查配置、跑测试用内置工具。
 ---
 
 # Go 开发工具编排
